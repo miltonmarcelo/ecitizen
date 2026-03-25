@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CITIZEN
+  STAFF
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  firebaseUid String    @unique
+  email       String    @unique
+  fullName    String?
+  role        Role      @default(CITIZEN)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  issues       Issue[]   @relation("CitizenIssues")
+  staffNotes   Note[]    @relation("StaffNotes")
+}
+
+model Issue {
+  id            Int         @id @default(autoincrement())
+  caseId        String      @unique
+  title         String
+  description   String
+  category      String
+  location      String
+  status        IssueStatus @default(OPEN)
+  citizenId     Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  citizen       User        @relation("CitizenIssues", fields: [citizenId], references: [id])
+  notes         Note[]
+}
+
+model Note {
+  id          Int      @id @default(autoincrement())
+  content     String
+  issueId     Int
+  staffUserId Int
+  createdAt   DateTime @default(now())
+
+  issue       Issue    @relation(fields: [issueId], references: [id])
+  staffUser   User     @relation("StaffNotes", fields: [staffUserId], references: [id])
+}
