@@ -1,0 +1,12 @@
+name: Test
+values:
+  - key: baseUrl
+    value: ''
+    enabled: true
+  - key: token
+    value: ''
+    enabled: true
+  - key: caseID
+    value: ''
+    enabled: true
+color: 120

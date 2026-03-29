@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ message: "eCitizen backend running" });
+  res.json({ message: "Backend for eCitizen is up and running" });
 });
 
 app.get("/health/db", async (req, res) => {

@@ -39,7 +39,12 @@ model Issue {
   title         String
   description   String
   category      String
-  location      String
+  addressLine1 String
+  addressLine2 String?
+  town         String
+  city         String
+  county       String
+  eircode      String
   status        IssueStatus @default(OPEN)
   citizenId     Int
   createdAt     DateTime    @default(now())
