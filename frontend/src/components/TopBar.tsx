@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "@/firebase/firebase";
 import UserProfileDropdown from "@/components/UserProfileDropdown";
 
 type TopBarProps = {
@@ -17,8 +16,6 @@ const TopBar = ({
   showProfile = false,
 }: TopBarProps) => {
   const navigate = useNavigate();
-  const fullName = auth.currentUser?.displayName || "";
-  const firstName = fullName ? fullName.split(" ")[0] : "";
 
   return (
     <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
@@ -46,12 +43,6 @@ const TopBar = ({
         </div>
 
         <div className="flex items-center gap-4">
-          {firstName && (
-            <span className="text-sm text-muted-foreground">
-              Hi, <span className="font-medium text-foreground">{firstName}</span>
-            </span>
-          )}
-
           {showProfile && <UserProfileDropdown />}
         </div>
       </div>

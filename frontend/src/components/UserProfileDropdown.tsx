@@ -1,4 +1,4 @@
-import { User, Mail, Shield, CalendarDays, CheckCircle, LogOut, KeyRound } from "lucide-react";
+import { User, Mail, CalendarDays, CheckCircle, LogOut, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 
@@ -47,6 +47,10 @@ const UserProfileDropdown = () => {
     }
   };
 
+  const handleChangePassword = () => {
+    navigate("/change-password");
+  };
+
   return (
     <div className="flex items-center gap-4">
       {firstName && (
@@ -87,6 +91,14 @@ const UserProfileDropdown = () => {
           </div>
 
           <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            onClick={handleChangePassword}
+            className="m-1 cursor-pointer"
+          >
+            <KeyRound className="w-4 h-4 mr-2" />
+            Change Password
+          </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={handleSignOut}

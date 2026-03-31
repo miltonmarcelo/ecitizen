@@ -1,6 +1,4 @@
 import {
-  ArrowLeft,
-  User,
   Search,
   ChevronDown,
   X,
@@ -14,92 +12,26 @@ import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import TopBar from "@/components/TopBar";
+import { useAuth } from "@/context/AuthContext";
 
-const ALL_ISSUES = [
-  {
-    id: "EC-2026-00124",
-    title: "Broken streetlight near bus stop",
-    category: "Street Lighting",
-    status: "In Progress",
-    statusColor: "bg-warning/15 text-warning",
-    date: "21 Mar 2026",
-    location: "Ranelagh Road",
-    description: "The streetlight near the main bus stop has been flickering for two weeks and is now completely off.",
-  },
-  {
-    id: "EC-2026-00118",
-    title: "Pothole near Main Street junction",
-    category: "Roads & Pavements",
-    status: "Open",
-    statusColor: "bg-primary/15 text-primary",
-    date: "18 Mar 2026",
-    location: "Main St & 3rd Ave",
-    description: "Large pothole approximately 30cm wide causing vehicles to swerve. Risk to cyclists.",
-  },
-  {
-    id: "EC-2026-00115",
-    title: "Overflowing waste bin at park",
-    category: "Waste & Recycling",
-    status: "Resolved",
-    statusColor: "bg-accent/15 text-accent",
-    date: "10 Mar 2026",
-    location: "Central Park, Gate B",
-    description: "The public waste bin near Gate B has been overflowing since last weekend.",
-  },
-  {
-    id: "EC-2026-00110",
-    title: "Graffiti on community hall wall",
-    category: "Public Property",
-    status: "Open",
-    statusColor: "bg-primary/15 text-primary",
-    date: "8 Mar 2026",
-    location: "Oak Avenue Community Hall",
-    description: "Large graffiti appeared on the south-facing wall of the community hall overnight.",
-  },
-  {
-    id: "EC-2026-00102",
-    title: "Blocked drainage on River Road",
-    category: "Water & Drainage",
-    status: "In Progress",
-    statusColor: "bg-warning/15 text-warning",
-    date: "3 Mar 2026",
-    location: "River Road, near bridge",
-    description: "Storm drain blocked with debris causing water to pool on the road during rain.",
-  },
-  {
-    id: "EC-2026-00098",
-    title: "Damaged park bench",
-    category: "Public Property",
-    status: "Resolved",
-    statusColor: "bg-accent/15 text-accent",
-    date: "28 Feb 2026",
-    location: "Elm Park, east entrance",
-    description: "Wooden bench near the east entrance has two broken slats and is unsafe to sit on.",
-  },
-  {
-    id: "EC-2026-00091",
-    title: "Illegal dumping near river",
-    category: "Waste & Recycling",
-    status: "Awaiting Info",
-    statusColor: "bg-muted text-muted-foreground",
-    date: "22 Feb 2026",
-    location: "River Road, south bank",
-    description: "Construction waste has been dumped along the south bank of the river near the walking trail.",
-  },
-  {
-    id: "EC-2026-00085",
-    title: "Faulty traffic signal at Oak Avenue",
-    category: "Street Lighting",
-    status: "Resolved",
-    statusColor: "bg-accent/15 text-accent",
-    date: "15 Feb 2026",
-    location: "Oak Avenue & Birch St",
-    description: "Traffic signal stuck on red for the north-south direction during peak hours.",
-  },
-];
+type ApiIssue = {
+  id: number;
+  caseId: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  town: string;
+  city: string;
+  county: string;
+  eircode: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-const CATEGORIES = ["All", "Street Lighting", "Roads & Pavements", "Waste & Recycling", "Public Property", "Water & Drainage"];
-const STATUSES = ["All", "Open", "In Progress", "Resolved", "Awaiting Info"];
+const BASE_STATUSES = ["All", "CREATED", "UNDER_REVIEW", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELLED"];
 const SORT_OPTIONS = ["Newest first", "Oldest first", "Category A–Z", "Category Z–A", "Status"];
 
 const fadeUp = (delay = 0) => ({
@@ -108,38 +40,152 @@ const fadeUp = (delay = 0) => ({
   transition: { delay, duration: 0.35 },
 });
 
+const formatStatusLabel = (status: string) => {
+  switch (status) {
+    case "CREATED":
+      return "Created";
+    case "UNDER_REVIEW":
+      return "Under Review";
+    case "IN_PROGRESS":
+      return "In Progress";
+    case "RESOLVED":
+      return "Resolved";
+    case "CLOSED":
+      return "Closed";
+    case "CANCELLED":
+      return "Cancelled";
+    default:
+      return status;
+  }
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "RESOLVED":
+    case "CLOSED":
+      return "bg-accent/15 text-accent";
+    case "IN_PROGRESS":
+    case "UNDER_REVIEW":
+      return "bg-warning/15 text-warning";
+    case "CANCELLED":
+      return "bg-destructive/15 text-destructive";
+    case "CREATED":
+    default:
+      return "bg-primary/15 text-primary";
+  }
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-IE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const buildLocation = (issue: ApiIssue) => {
+  return [issue.addressLine1, issue.town, issue.city].filter(Boolean).join(", ");
+};
+
 const MyIssuesPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [sort, setSort] = useState("Newest first");
+  const [showSort, setShowSort] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 5;
+
+  const [issues, setIssues] = useState<ApiIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
-    if (statusParam && STATUSES.includes(statusParam)) {
+    if (statusParam && BASE_STATUSES.includes(statusParam)) {
       setStatusFilter(statusParam);
     }
   }, [searchParams]);
-  const [sort, setSort] = useState("Newest first");
-  const [showSort, setShowSort] = useState(false);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        if (!user) {
+          setIssues([]);
+          return;
+        }
+
+        const token = await user.getIdToken();
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/issues/my`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch issues");
+        }
+
+        setIssues(data.issues || []);
+      } catch (err: any) {
+        setError(err.message || "Unable to load your issues.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchIssues();
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, categoryFilter, sort]);
+
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(issues.map((issue) => issue.category))).sort((a, b) =>
+      a.localeCompare(b)
+    );
+    return ["All", ...uniqueCategories];
+  }, [issues]);
 
   const filtered = useMemo(() => {
-    let list = ALL_ISSUES.filter((issue) => {
+    let list = issues.filter((issue) => {
       const q = search.toLowerCase();
+
+      const location = buildLocation(issue).toLowerCase();
+
       const matchesSearch =
         !q ||
         issue.title.toLowerCase().includes(q) ||
-        issue.id.toLowerCase().includes(q) ||
-        issue.location.toLowerCase().includes(q);
+        issue.caseId.toLowerCase().includes(q) ||
+        location.includes(q);
+
       const matchesStatus = statusFilter === "All" || issue.status === statusFilter;
       const matchesCategory = categoryFilter === "All" || issue.category === categoryFilter;
+
       return matchesSearch && matchesStatus && matchesCategory;
     });
 
     switch (sort) {
       case "Oldest first":
-        list = [...list].reverse();
+        list = [...list].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
         break;
       case "Category A–Z":
         list = [...list].sort((a, b) => a.category.localeCompare(b.category));
@@ -148,22 +194,51 @@ const MyIssuesPage = () => {
         list = [...list].sort((a, b) => b.category.localeCompare(a.category));
         break;
       case "Status":
-        list = [...list].sort((a, b) => a.status.localeCompare(b.status));
+        list = [...list].sort((a, b) => formatStatusLabel(a.status).localeCompare(formatStatusLabel(b.status)));
+        break;
+      case "Newest first":
+      default:
+        list = [...list].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
         break;
     }
 
     return list;
-  }, [search, statusFilter, categoryFilter, sort]);
+  }, [issues, search, statusFilter, categoryFilter, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+
+  const paginatedIssues = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const visiblePages = useMemo(() => {
+    const pages: number[] = [];
+
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage <= 3) {
+      pages.push(1, 2, 3, 4, 5);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2);
+    }
+
+    return pages.filter((page) => page >= 1 && page <= totalPages);
+  }, [currentPage, totalPages]);
 
   const hasActiveFilters = statusFilter !== "All" || categoryFilter !== "All" || search !== "";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top App Bar */}
       <TopBar showBack backTo="/dashboard" showProfile />
 
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
-        {/* Header */}
         <motion.div {...fadeUp(0)}>
           <h2 className="text-xl font-bold text-foreground">My Reported Issues</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -171,13 +246,12 @@ const MyIssuesPage = () => {
           </p>
         </motion.div>
 
-        {/* Search */}
         <motion.div {...fadeUp(0.05)} className="space-y-3">
           <div className="relative">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by title, ID, or location"
+              placeholder="Search by title, case ID, or location"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input-civic pl-10 pr-9"
@@ -192,32 +266,29 @@ const MyIssuesPage = () => {
             )}
           </div>
 
-          {/* Filters row */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Status */}
             <div className="relative">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
-                {STATUSES.map((s) => (
+                {BASE_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s === "All" ? "Status" : s}
+                    {s === "All" ? "Status" : formatStatusLabel(s)}
                   </option>
                 ))}
               </select>
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Category */}
             <div className="relative">
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
-                {CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <option key={c} value={c}>
                     {c === "All" ? "Category" : c}
                   </option>
@@ -226,7 +297,6 @@ const MyIssuesPage = () => {
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Sort */}
             <div className="relative ml-auto">
               <button
                 onClick={() => setShowSort(!showSort)}
@@ -234,13 +304,19 @@ const MyIssuesPage = () => {
               >
                 Sort <ChevronDown size={12} />
               </button>
+
               {showSort && (
                 <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
                   {SORT_OPTIONS.map((opt) => (
                     <button
                       key={opt}
-                      onClick={() => { setSort(opt); setShowSort(false); }}
-                      className={`block w-full text-left text-xs px-4 py-2 hover:bg-muted transition-colors ${sort === opt ? "text-primary font-semibold" : "text-foreground"}`}
+                      onClick={() => {
+                        setSort(opt);
+                        setShowSort(false);
+                      }}
+                      className={`block w-full text-left text-xs px-4 py-2 hover:bg-muted transition-colors ${
+                        sort === opt ? "text-primary font-semibold" : "text-foreground"
+                      }`}
                     >
                       {opt}
                     </button>
@@ -249,10 +325,13 @@ const MyIssuesPage = () => {
               )}
             </div>
 
-            {/* Clear */}
             {hasActiveFilters && (
               <button
-                onClick={() => { setSearch(""); setStatusFilter("All"); setCategoryFilter("All"); }}
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("All");
+                  setCategoryFilter("All");
+                }}
                 className="text-xs text-destructive font-medium hover:underline"
               >
                 Clear
@@ -260,34 +339,44 @@ const MyIssuesPage = () => {
             )}
           </div>
 
-          {/* Results summary */}
           <p className="text-xs text-muted-foreground">
-            Showing {filtered.length} of {ALL_ISSUES.length} reports
+            Showing {filtered.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+            {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length} reports
           </p>
         </motion.div>
 
-        {/* Issue List */}
         <div className="space-y-3">
-          {filtered.length === 0 ? (
+          {loading || authLoading ? (
+            <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
+              <p className="text-sm text-muted-foreground">Loading your issues...</p>
+            </motion.div>
+          ) : error ? (
+            <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
+              <p className="text-sm font-medium text-destructive">Unable to load issues</p>
+              <p className="text-xs text-muted-foreground mt-1">{error}</p>
+            </motion.div>
+          ) : filtered.length === 0 ? (
             <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
               <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground">No issues found</p>
               <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters.</p>
             </motion.div>
           ) : (
-            filtered.map((issue, idx) => (
+            paginatedIssues.map((issue, idx) => (
               <motion.div
-                key={issue.id}
+                key={issue.caseId}
                 {...fadeUp(0.08 + idx * 0.04)}
                 className="card-civic space-y-2.5 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/issue/${issue.id}`)}
+                onClick={() => navigate(`/issue/${issue.caseId}`)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold text-foreground leading-snug flex-1">
                     {issue.title}
                   </h3>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${issue.statusColor}`}>
-                    {issue.status}
+                  <span
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${getStatusColor(issue.status)}`}
+                  >
+                    {formatStatusLabel(issue.status)}
                   </span>
                 </div>
 
@@ -295,21 +384,24 @@ const MyIssuesPage = () => {
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <FileText size={11} /> {issue.id}
+                    <FileText size={11} /> {issue.caseId}
                   </span>
                   <span className="flex items-center gap-1">
                     <Tag size={11} /> {issue.category}
                   </span>
                   <span className="flex items-center gap-1">
-                    <MapPin size={11} /> {issue.location}
+                    <MapPin size={11} /> {issue.town}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar size={11} /> {issue.date}
+                    <Calendar size={11} /> {formatDate(issue.createdAt)}
                   </span>
                 </div>
 
                 <button
-                  onClick={() => navigate(`/issue/${issue.id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/issue/${issue.caseId}`);
+                  }}
                   className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5 pt-0.5"
                 >
                   View Details <ChevronRight size={12} />
@@ -318,6 +410,45 @@ const MyIssuesPage = () => {
             ))
           )}
         </div>
+
+        {!loading && !authLoading && !error && filtered.length > 0 && totalPages > 1 && (
+          <motion.div
+            {...fadeUp(0.16)}
+            className="flex items-center justify-between gap-2 pt-2"
+          >
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-xs font-medium rounded-lg border border-border bg-card text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              {visiblePages.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-9 h-9 text-xs font-medium rounded-lg border transition-colors ${
+                    currentPage === page
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-xs font-medium rounded-lg border border-border bg-card text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </motion.div>
+        )}
       </main>
     </div>
   );

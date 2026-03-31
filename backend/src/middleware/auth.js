@@ -12,16 +12,28 @@ async function auth(req, res, next) {
     const token = header.split(" ")[1];
     const decoded = await admin.auth().verifyIdToken(token);
 
-    const user = await prisma.user.findUnique({
-      where: { firebaseUid: decoded.uid },
-    });
+    let user = null;
+
+    if (decoded.uid) {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { firebaseUid: decoded.uid },
+            ...(decoded.email ? [{ email: decoded.email }] : []),
+          ],
+        },
+      });
+    }
 
     req.firebaseUser = decoded;
-    req.user = user || null;
-
+    req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Unauthorized", details: error.message });
+    console.error("Auth middleware error:", error);
+    return res.status(401).json({
+      message: "Unauthorized",
+      details: error.message,
+    });
   }
 }
 

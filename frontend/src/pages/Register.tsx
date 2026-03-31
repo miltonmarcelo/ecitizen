@@ -1,8 +1,13 @@
-import { ArrowLeft, Eye, EyeOff, ShieldCheck, Bell, BarChart3 } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Bell, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  deleteUser,
+  signOut,
+} from "firebase/auth";
 import { auth } from "@/firebase/firebase";
 import TopBar from "@/components/TopBar";
 
@@ -26,80 +31,107 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  if (!fullName.trim()) {
-    setError("Please enter your full name.");
-    return;
-  }
-
-  if (!email.trim()) {
-    setError("Please enter your email.");
-    return;
-  }
-
-  if (password.length < 6) {
-    setError("Password must have at least 6 characters.");
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    setError("Passwords do not match.");
-    return;
-  }
-
-  if (!agreed) {
-    setError("Please accept the terms to continue.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    await updateProfile(user, {
-      displayName: fullName,
-    });
-
-    const token = await user.getIdToken();
-
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        fullName,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to sync user");
+    if (!fullName.trim()) {
+      setError("Please enter your full name.");
+      return;
     }
 
-    navigate("/my-issues");
-  } catch (err: any) {
-    console.error("Register error:", err);
-
-    if (err.code === "auth/email-already-in-use") {
-      setError("This email is already in use.");
-    } else if (err.code === "auth/invalid-email") {
-      setError("Please enter a valid email address.");
-    } else if (err.code === "auth/weak-password") {
-      setError("Please choose a stronger password.");
-    } else {
-      setError(err.message || "Unable to create account. Please try again.");
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    if (password.length < 6) {
+      setError("Password must have at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!agreed) {
+      setError("Please accept the terms to continue.");
+      return;
+    }
+
+    let createdUser = null;
+
+    try {
+      setLoading(true);
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      createdUser = userCredential.user;
+
+      await updateProfile(createdUser, {
+        displayName: fullName,
+      });
+
+      const token = await createdUser.getIdToken(true);
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName,
+        }),
+      });
+
+      const rawText = await response.text();
+      let data: any = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || data.details || "Failed to sync user");
+      }
+
+      navigate("/my-issues");
+    } catch (err: any) {
+      console.error("Register error:", err);
+
+      const firebaseErrorCode = err?.code || "";
+      const message = err?.message || "Unable to create account. Please try again.";
+
+      if (createdUser && !firebaseErrorCode) {
+        try {
+          await deleteUser(createdUser);
+        } catch (deleteError) {
+          console.error("Failed to delete Firebase user after sync error:", deleteError);
+          try {
+            await signOut(auth);
+          } catch (signOutError) {
+            console.error("Failed to sign out after sync error:", signOutError);
+          }
+        }
+      }
+
+      if (firebaseErrorCode === "auth/email-already-in-use") {
+        setError("This email is already in use. Please login instead or use another email.");
+      } else if (firebaseErrorCode === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else if (firebaseErrorCode === "auth/weak-password") {
+        setError("Please choose a stronger password.");
+      } else if (message === "Unauthorized") {
+        setError("Registration reached Firebase, but backend user sync failed with Unauthorized. Please check that frontend Firebase and backend Admin credentials are using the same Firebase project.");
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

@@ -3,10 +3,19 @@ const cors = require("cors");
 require("dotenv").config();
 const prisma = require("./lib/prisma");
 
+const issueRoutes = require("./routes/issueRoutes");
+const userRoutes = require("./routes/userRoutes");
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:8080",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -22,11 +31,9 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
+app.use("/api/users", userRoutes);
+app.use("/api/issues", issueRoutes);
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-const issueRoutes = require("./routes/issueRoutes");
-const userRoutes = require("./routes/userRoutes");
-app.use("/api/issues", issueRoutes);
-app.use("/api/users", userRoutes);

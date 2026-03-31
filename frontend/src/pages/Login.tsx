@@ -52,7 +52,7 @@ const LoginPage = () => {
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      const token = await userCredential.user.getIdToken();
+      const token = await userCredential.user.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
         method: "POST",

@@ -36,23 +36,61 @@ router.post("/", auth, async (req, res) => {
       return res.status(403).json({ message: "Only citizens can create issues" });
     }
 
-    const { title, description, category, location } = req.body;
+    const {
+      title,
+      description,
+      category,
+      addressLine1,
+      addressLine2,
+      town,
+      city,
+      county,
+      eircode,
+    } = req.body;
 
-    if (!title || !description || !category || !location) {
+    if (
+      !title ||
+      !description ||
+      !category ||
+      !addressLine1 ||
+      !town ||
+      !city ||
+      !county ||
+      !eircode
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     const caseId = await generateUniqueCaseId();
 
-    const issue = await prisma.issue.create({
-      data: {
-        caseId,
-        title,
-        description,
-        category,
-        location,
-        citizenId: req.user.id,
-      },
+    const issue = await prisma.$transaction(async (tx) => {
+      const newIssue = await tx.issue.create({
+        data: {
+          caseId,
+          title,
+          description,
+          category,
+          addressLine1,
+          addressLine2: addressLine2 || null,
+          town,
+          city,
+          county,
+          eircode,
+          citizenId: req.user.id,
+        },
+      });
+
+      await tx.issueHistory.create({
+        data: {
+          issueId: newIssue.id,
+          eventType: "CREATED",
+          toStatus: "CREATED",
+          changedByUserId: req.user.id,
+          comment: "Issue created",
+        },
+      });
+
+      return newIssue;
     });
 
     return res.status(201).json({
@@ -86,7 +124,12 @@ router.get("/my", auth, async (req, res) => {
               { title: { contains: search } },
               { description: { contains: search } },
               { caseId: { contains: search } },
-              { location: { contains: search } },
+              { addressLine1: { contains: search } },
+              { addressLine2: { contains: search } },
+              { town: { contains: search } },
+              { city: { contains: search } },
+              { county: { contains: search } },
+              { eircode: { contains: search } },
             ],
           }
         : {}),
@@ -128,7 +171,12 @@ router.get("/", auth, async (req, res) => {
               { title: { contains: search } },
               { description: { contains: search } },
               { caseId: { contains: search } },
-              { location: { contains: search } },
+              { addressLine1: { contains: search } },
+              { addressLine2: { contains: search } },
+              { town: { contains: search } },
+              { city: { contains: search } },
+              { county: { contains: search } },
+              { eircode: { contains: search } },
             ],
           }
         : {}),
@@ -178,16 +226,36 @@ router.get("/:caseId", auth, async (req, res) => {
         },
         notes: {
           include: {
-            staffUser: {
+            staff: {
               select: {
                 id: true,
-                fullName: true,
-                email: true,
+                jobTitle: true,
+                user: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
               },
             },
           },
           orderBy: {
             createdAt: "desc",
+          },
+        },
+        history: {
+          include: {
+            changedByUser: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            changedAt: "asc",
           },
         },
       },
@@ -222,7 +290,14 @@ router.patch("/:caseId/status", auth, async (req, res) => {
     const { caseId } = req.params;
     const { status } = req.body;
 
-    const allowedStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELLED"];
+    const allowedStatuses = [
+      "CREATED",
+      "UNDER_REVIEW",
+      "IN_PROGRESS",
+      "RESOLVED",
+      "CLOSED",
+      "CANCELLED",
+    ];
 
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -236,9 +311,31 @@ router.patch("/:caseId/status", auth, async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
-    const issue = await prisma.issue.update({
-      where: { caseId },
-      data: { status },
+    if (existingIssue.status === status) {
+      return res.status(200).json({
+        message: "Issue status unchanged",
+        issue: existingIssue,
+      });
+    }
+
+    const issue = await prisma.$transaction(async (tx) => {
+      const updatedIssue = await tx.issue.update({
+        where: { caseId },
+        data: { status },
+      });
+
+      await tx.issueHistory.create({
+        data: {
+          issueId: existingIssue.id,
+          eventType: "STATUS_CHANGED",
+          fromStatus: existingIssue.status,
+          toStatus: status,
+          changedByUserId: req.user.id,
+          comment: `Status changed from ${existingIssue.status} to ${status}`,
+        },
+      });
+
+      return updatedIssue;
     });
 
     return res.status(200).json({
@@ -246,60 +343,9 @@ router.patch("/:caseId/status", auth, async (req, res) => {
       issue,
     });
   } catch (error) {
-    console.error("Update status error:", error);
+    console.error("Update issue status error:", error);
     return res.status(500).json({
       message: "Failed to update issue status",
-      details: error.message,
-    });
-  }
-});
-
-router.post("/:caseId/notes", auth, async (req, res) => {
-  try {
-    if (!isStaff(req.user)) {
-      return res.status(403).json({ message: "Only staff can add notes" });
-    }
-
-    const { caseId } = req.params;
-    const { content } = req.body;
-
-    if (!content || !content.trim()) {
-      return res.status(400).json({ message: "Note content is required" });
-    }
-
-    const issue = await prisma.issue.findUnique({
-      where: { caseId },
-    });
-
-    if (!issue) {
-      return res.status(404).json({ message: "Issue not found" });
-    }
-
-    const note = await prisma.note.create({
-      data: {
-        content: content.trim(),
-        issueId: issue.id,
-        staffUserId: req.user.id,
-      },
-      include: {
-        staffUser: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    return res.status(201).json({
-      message: "Note added successfully",
-      note,
-    });
-  } catch (error) {
-    console.error("Add note error:", error);
-    return res.status(500).json({
-      message: "Failed to add note",
       details: error.message,
     });
   }

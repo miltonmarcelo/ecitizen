@@ -1,4 +1,4 @@
-import { MapPin, ThumbsUp, Eye, ChevronDown, Crosshair } from "lucide-react";
+import { MapPin, ThumbsUp, Eye, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -92,14 +92,10 @@ const ReportIssuePage = () => {
       return;
     }
 
-    const location = {
-      addressLine1: addressLine1.trim(),
-      addressLine2: addressLine2.trim(),
-      town: town.trim(),
-      city: city.trim(),
-      county: county.trim(),
-      eircode: eircode.trim(),
-    };
+    if (!eircode.trim()) {
+      setError("Please enter an Eircode.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -119,10 +115,15 @@ const ReportIssuePage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          title,
-          description,
-          category,
-          location,
+          title: title.trim(),
+          description: description.trim(),
+          category: category.trim(),
+          addressLine1: addressLine1.trim(),
+          addressLine2: addressLine2.trim(),
+          town: town.trim(),
+          city: city.trim(),
+          county: county.trim(),
+          eircode: eircode.trim(),
         }),
       });
 
@@ -166,7 +167,9 @@ const ReportIssuePage = () => {
           <h3 className="section-title">Issue Details</h3>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Issue Title</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Issue Title
+            </label>
             <input
               className="input-civic"
               placeholder="e.g. Pothole on Main Road"
@@ -176,7 +179,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div className="relative">
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Category
+            </label>
             <button
               type="button"
               className="input-civic flex items-center justify-between text-left"
@@ -208,7 +213,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Description
+            </label>
             <textarea
               className="input-civic min-h-[100px] resize-none"
               placeholder="Describe the issue in detail..."
@@ -228,7 +235,9 @@ const ReportIssuePage = () => {
           <h3 className="section-title">Location</h3>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Address 1</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Address 1
+            </label>
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -241,7 +250,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Address 2</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Address 2
+            </label>
             <input
               className="input-civic"
               placeholder="Enter address line 2"
@@ -251,7 +262,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Town</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Town
+            </label>
             <input
               className="input-civic"
               placeholder="Enter town"
@@ -261,7 +274,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">City</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              City
+            </label>
             <input
               className="input-civic"
               placeholder="Enter city"
@@ -271,7 +286,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">County</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              County
+            </label>
             <input
               className="input-civic"
               placeholder="Enter county"
@@ -281,7 +298,9 @@ const ReportIssuePage = () => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Eircode</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Eircode
+            </label>
             <input
               className="input-civic"
               placeholder="Enter Eircode"
@@ -289,18 +308,6 @@ const ReportIssuePage = () => {
               onChange={(e) => setEircode(e.target.value)}
             />
           </div>
-
-          {/* <button type="button" className="btn-secondary-civic flex items-center gap-2 w-full justify-center">
-            <Crosshair className="w-4 h-4" />
-            Use Current Location
-          </button> */}
-
-          {/* <div className="rounded-xl bg-muted h-32 flex items-center justify-center border border-border">
-            <div className="text-center">
-              <MapPin className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
-              <span className="text-xs text-muted-foreground">Location preview</span>
-            </div>
-          </div> */}
         </motion.section>
 
         <motion.section
@@ -311,17 +318,23 @@ const ReportIssuePage = () => {
           variants={fadeUp}
         >
           <h3 className="section-title">Possible Duplicates</h3>
-          <p className="text-xs text-muted-foreground -mt-1">Similar issues reported nearby</p>
+          <p className="text-xs text-muted-foreground -mt-1">
+            Similar issues reported nearby
+          </p>
 
           <div className="space-y-2.5">
             {DUPLICATES.map((d) => (
               <div key={d.id} className="duplicate-card">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-foreground truncate">{d.title}</h4>
+                    <h4 className="text-sm font-medium text-foreground truncate">
+                      {d.title}
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">{d.area}</p>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusColor(d.status)}`}>
+                      <span
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusColor(d.status)}`}
+                      >
                         {d.status}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -355,10 +368,17 @@ const ReportIssuePage = () => {
 
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-4 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]">
         <div className="max-w-lg mx-auto flex gap-3">
-          <button className="btn-outline-civic flex-1" onClick={() => navigate("/dashboard")}>
+          <button
+            className="btn-outline-civic flex-1"
+            onClick={() => navigate("/dashboard")}
+          >
             Cancel
           </button>
-          <button className="btn-primary-civic flex-1" onClick={handleSubmitIssue} disabled={loading}>
+          <button
+            className="btn-primary-civic flex-1"
+            onClick={handleSubmitIssue}
+            disabled={loading}
+          >
             {loading ? "Submitting..." : "Submit Issue"}
           </button>
         </div>
