@@ -14,12 +14,20 @@ import { useState, useMemo, useEffect } from "react";
 import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
 
+type ApiCategory = {
+  id: number;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+};
+
 type ApiIssue = {
   id: number;
   caseId: string;
   title: string;
   description: string;
-  category: string;
+  categoryId: number;
+  category: ApiCategory | null;
   status: string;
   addressLine1: string;
   addressLine2?: string | null;
@@ -32,7 +40,7 @@ type ApiIssue = {
 };
 
 const BASE_STATUSES = ["All", "CREATED", "UNDER_REVIEW", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELLED"];
-const SORT_OPTIONS = ["Newest first", "Oldest first", "Category A–Z", "Category Z–A", "Status"];
+const SORT_OPTIONS = ["Newest first", "Oldest first", "Title A–Z", "Title Z–A"];
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
@@ -86,6 +94,10 @@ const formatDate = (dateString: string) => {
 
 const buildLocation = (issue: ApiIssue) => {
   return [issue.addressLine1, issue.town, issue.city].filter(Boolean).join(", ");
+};
+
+const getCategoryName = (issue: ApiIssue) => {
+  return issue.category?.name || "Uncategorised";
 };
 
 const MyIssuesPage = () => {
@@ -157,26 +169,32 @@ const MyIssuesPage = () => {
   }, [search, statusFilter, categoryFilter, sort]);
 
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(issues.map((issue) => issue.category))).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    const uniqueCategories = Array.from(
+      new Set(
+        issues
+          .map((issue) => issue.category?.name)
+          .filter((name): name is string => Boolean(name))
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
     return ["All", ...uniqueCategories];
   }, [issues]);
 
   const filtered = useMemo(() => {
     let list = issues.filter((issue) => {
       const q = search.toLowerCase();
-
       const location = buildLocation(issue).toLowerCase();
+      const categoryName = getCategoryName(issue).toLowerCase();
 
       const matchesSearch =
         !q ||
         issue.title.toLowerCase().includes(q) ||
         issue.caseId.toLowerCase().includes(q) ||
-        location.includes(q);
+        location.includes(q) ||
+        categoryName.includes(q);
 
       const matchesStatus = statusFilter === "All" || issue.status === statusFilter;
-      const matchesCategory = categoryFilter === "All" || issue.category === categoryFilter;
+      const matchesCategory = categoryFilter === "All" || getCategoryName(issue) === categoryFilter;
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -187,14 +205,11 @@ const MyIssuesPage = () => {
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         break;
-      case "Category A–Z":
-        list = [...list].sort((a, b) => a.category.localeCompare(b.category));
+      case "Title A–Z":
+        list = [...list].sort((a, b) => a.title.localeCompare(b.title));
         break;
-      case "Category Z–A":
-        list = [...list].sort((a, b) => b.category.localeCompare(a.category));
-        break;
-      case "Status":
-        list = [...list].sort((a, b) => formatStatusLabel(a.status).localeCompare(formatStatusLabel(b.status)));
+      case "Title Z–A":
+        list = [...list].sort((a, b) => b.title.localeCompare(a.title));
         break;
       case "Newest first":
       default:
@@ -251,7 +266,7 @@ const MyIssuesPage = () => {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by title, case ID, or location"
+              placeholder="Search by title, case ID, location, or category"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input-civic pl-10 pr-9"
@@ -279,7 +294,10 @@ const MyIssuesPage = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <ChevronDown
+                size={12}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+              />
             </div>
 
             <div className="relative">
@@ -294,15 +312,31 @@ const MyIssuesPage = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <ChevronDown
+                size={12}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+              />
             </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("All");
+                  setCategoryFilter("All");
+                }}
+                className="text-xs text-destructive font-medium hover:underline"
+              >
+                Clear
+              </button>
+            )}
 
             <div className="relative ml-auto">
               <button
-                onClick={() => setShowSort(!showSort)}
-                className="text-xs font-medium rounded-lg border border-border bg-card px-3 py-2 text-foreground hover:bg-muted transition-colors flex items-center gap-1"
-              >
-                Sort <ChevronDown size={12} />
+                  onClick={() => setShowSort(!showSort)}
+                  className="text-xs font-medium rounded-lg border border-border bg-card px-3 py-2 text-foreground hover:bg-muted transition-colors flex items-center gap-1"
+                >
+                  {sort} <ChevronDown size={12} />
               </button>
 
               {showSort && (
@@ -324,19 +358,6 @@ const MyIssuesPage = () => {
                 </div>
               )}
             </div>
-
-            {hasActiveFilters && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("All");
-                  setCategoryFilter("All");
-                }}
-                className="text-xs text-destructive font-medium hover:underline"
-              >
-                Clear
-              </button>
-            )}
           </div>
 
           <p className="text-xs text-muted-foreground">
@@ -387,14 +408,16 @@ const MyIssuesPage = () => {
                     <FileText size={11} /> {issue.caseId}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Tag size={11} /> {issue.category}
+                    <Calendar size={11} /> {formatDate(issue.createdAt)}
                   </span>
                   <span className="flex items-center gap-1">
                     <MapPin size={11} /> {issue.town}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar size={11} /> {formatDate(issue.createdAt)}
+                    <Tag size={11} /> {getCategoryName(issue)}
                   </span>
+                  
+                  
                 </div>
 
                 <button

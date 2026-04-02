@@ -39,7 +39,7 @@ router.post("/", auth, async (req, res) => {
     const {
       title,
       description,
-      category,
+      categoryId,
       addressLine1,
       addressLine2,
       town,
@@ -48,10 +48,12 @@ router.post("/", auth, async (req, res) => {
       eircode,
     } = req.body;
 
+    const parsedCategoryId = Number(categoryId);
+
     if (
       !title ||
       !description ||
-      !category ||
+      !parsedCategoryId ||
       !addressLine1 ||
       !town ||
       !city ||
@@ -59,6 +61,14 @@ router.post("/", auth, async (req, res) => {
       !eircode
     ) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingCategory = await prisma.category.findUnique({
+      where: { id: parsedCategoryId },
+    });
+
+    if (!existingCategory) {
+      return res.status(400).json({ message: "Invalid category selected" });
     }
 
     const caseId = await generateUniqueCaseId();
@@ -69,7 +79,7 @@ router.post("/", auth, async (req, res) => {
           caseId,
           title,
           description,
-          category,
+          categoryId: parsedCategoryId,
           addressLine1,
           addressLine2: addressLine2 || null,
           town,
@@ -77,6 +87,9 @@ router.post("/", auth, async (req, res) => {
           county,
           eircode,
           citizenId: req.user.id,
+        },
+        include: {
+          category: true,
         },
       });
 
@@ -117,19 +130,25 @@ router.get("/my", auth, async (req, res) => {
     const where = {
       citizenId: req.user.id,
       ...(status ? { status } : {}),
-      ...(category ? { category } : {}),
+      ...(category
+        ? {
+            category: {
+              name: String(category),
+            },
+          }
+        : {}),
       ...(search
         ? {
             OR: [
-              { title: { contains: search } },
-              { description: { contains: search } },
-              { caseId: { contains: search } },
-              { addressLine1: { contains: search } },
-              { addressLine2: { contains: search } },
-              { town: { contains: search } },
-              { city: { contains: search } },
-              { county: { contains: search } },
-              { eircode: { contains: search } },
+              { title: { contains: String(search) } },
+              { description: { contains: String(search) } },
+              { caseId: { contains: String(search) } },
+              { addressLine1: { contains: String(search) } },
+              { addressLine2: { contains: String(search) } },
+              { town: { contains: String(search) } },
+              { city: { contains: String(search) } },
+              { county: { contains: String(search) } },
+              { eircode: { contains: String(search) } },
             ],
           }
         : {}),
@@ -140,6 +159,9 @@ router.get("/my", auth, async (req, res) => {
     const issues = await prisma.issue.findMany({
       where,
       orderBy,
+      include: {
+        category: true,
+      },
     });
 
     return res.status(200).json({
@@ -164,19 +186,25 @@ router.get("/", auth, async (req, res) => {
 
     const where = {
       ...(status ? { status } : {}),
-      ...(category ? { category } : {}),
+      ...(category
+        ? {
+            category: {
+              name: String(category),
+            },
+          }
+        : {}),
       ...(search
         ? {
             OR: [
-              { title: { contains: search } },
-              { description: { contains: search } },
-              { caseId: { contains: search } },
-              { addressLine1: { contains: search } },
-              { addressLine2: { contains: search } },
-              { town: { contains: search } },
-              { city: { contains: search } },
-              { county: { contains: search } },
-              { eircode: { contains: search } },
+              { title: { contains: String(search) } },
+              { description: { contains: String(search) } },
+              { caseId: { contains: String(search) } },
+              { addressLine1: { contains: String(search) } },
+              { addressLine2: { contains: String(search) } },
+              { town: { contains: String(search) } },
+              { city: { contains: String(search) } },
+              { county: { contains: String(search) } },
+              { eircode: { contains: String(search) } },
             ],
           }
         : {}),
@@ -188,6 +216,7 @@ router.get("/", auth, async (req, res) => {
       where,
       orderBy,
       include: {
+        category: true,
         citizen: {
           select: {
             id: true,
@@ -217,6 +246,7 @@ router.get("/:caseId", auth, async (req, res) => {
     const issue = await prisma.issue.findUnique({
       where: { caseId },
       include: {
+        category: true,
         citizen: {
           select: {
             id: true,
@@ -305,6 +335,9 @@ router.patch("/:caseId/status", auth, async (req, res) => {
 
     const existingIssue = await prisma.issue.findUnique({
       where: { caseId },
+      include: {
+        category: true,
+      },
     });
 
     if (!existingIssue) {
@@ -322,6 +355,9 @@ router.patch("/:caseId/status", auth, async (req, res) => {
       const updatedIssue = await tx.issue.update({
         where: { caseId },
         data: { status },
+        include: {
+          category: true,
+        },
       });
 
       await tx.issueHistory.create({

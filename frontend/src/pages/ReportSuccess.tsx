@@ -1,4 +1,4 @@
-import { CheckCircle, FileText, Calendar, Tag, ArrowRight, LayoutDashboard, PlusCircle } from "lucide-react";
+import { CheckCircle, FileText, Calendar, Tag, ArrowRight, LayoutDashboard, PlusCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -185,11 +185,11 @@ const ReportSuccessPage = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-primary shrink-0" />
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <span
-                    className={`inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full mt-0.5 ${getStatusClass(issue.status)}`}
+                    className={`inline-block text-[11px] bg-primary/15 text-primary font-medium px-2.5 py-0.5 rounded-full mt-0.5 ${getStatusClass(issue.status)}`}
                   >
                     {formatStatus(issue.status)}
                   </span>
@@ -216,7 +216,7 @@ const ReportSuccessPage = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              You can track progress anytime from <span className="font-medium text-foreground">My Issues</span>.
+              You can track progress anytime from<button onClick={() => navigate("/my-issues")} className="text-primary">My Issues.</button>
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
@@ -226,7 +226,7 @@ const ReportSuccessPage = () => {
         </motion.div>
 
         <motion.div
-          className="space-y-3"
+          className="flex gap-3"
           initial="hidden"
           animate="visible"
           custom={3}
@@ -234,22 +234,15 @@ const ReportSuccessPage = () => {
         >
           <button
             onClick={() => navigate("/dashboard")}
-            className="btn-primary-civic w-full flex items-center justify-center gap-2"
+            className="btn-primary-civic flex-1 flex items-center justify-center gap-2"
           >
             <LayoutDashboard className="w-4 h-4" />
             Back to Dashboard
           </button>
 
           <button
-            onClick={() => navigate("/my-issues")}
-            className="btn-secondary-civic w-full"
-          >
-            View My Issues
-          </button>
-
-          <button
             onClick={() => navigate("/report")}
-            className="btn-outline-civic w-full flex items-center justify-center gap-2"
+            className="btn-outline-civic flex-1 flex items-center justify-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
             Report Another Issue

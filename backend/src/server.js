@@ -5,6 +5,7 @@ const prisma = require("./lib/prisma");
 
 const issueRoutes = require("./routes/issueRoutes");
 const userRoutes = require("./routes/userRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -17,6 +18,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use("/api/categories", categoryRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend for eCitizen is up and running" });

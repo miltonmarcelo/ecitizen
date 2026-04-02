@@ -1,24 +1,21 @@
-import { MapPin, ThumbsUp, Eye, ChevronDown } from "lucide-react";
+import { ThumbsUp, Eye, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth } from "@/firebase/firebase";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import TopBar from "@/components/TopBar";
+import { useAuth } from "@/context/AuthContext";
 
-const CATEGORIES = [
-  "Roads & Potholes",
-  "Water & Sewage",
-  "Electricity",
-  "Waste Management",
-  "Public Safety",
-  "Parks & Recreation",
-  "Other",
-];
+type Category = {
+  id: number;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+};
 
 const DUPLICATES = [
-  { id: 1, title: "Pothole on Moi Avenue", area: "CBD, Nairobi", status: "Under Review", supports: 23 },
-  { id: 2, title: "Broken Street Light", area: "Westlands", status: "In Progress", supports: 14 },
-  { id: 3, title: "Blocked Drainage", area: "Kilimani, Nairobi", status: "Reported", supports: 8 },
+  { id: 1, title: "Pothole on Main Road", area: "City Centre", status: "Under Review", supports: 23 },
+  { id: 2, title: "Broken Street Light", area: "West District", status: "In Progress", supports: 14 },
+  { id: 3, title: "Blocked Drainage", area: "South Area", status: "Reported", supports: 8 },
 ];
 
 const statusColor = (status: string) => {
@@ -37,8 +34,22 @@ const fadeUp = {
 };
 
 const ReportIssuePage = () => {
-  const [category, setCategory] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const requestedCategoryId = useMemo(() => {
+    const raw = searchParams.get("categoryId");
+    if (!raw) return null;
+
+    const parsed = Number(raw);
+    return Number.isNaN(parsed) ? null : parsed;
+  }, [searchParams]);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -51,8 +62,59 @@ const ReportIssuePage = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        setError("");
+
+        if (!user) {
+          setCategories([]);
+          return;
+        }
+
+        const token = await user.getIdToken();
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/categories`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load categories");
+        }
+
+        const fetchedCategories = Array.isArray(data.categories) ? data.categories : [];
+        setCategories(fetchedCategories);
+      } catch (err: any) {
+        setError(err.message || "Unable to load categories.");
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchCategories();
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!requestedCategoryId || categories.length === 0) return;
+
+    const matchedCategory = categories.find(
+      (category) => category.id === requestedCategoryId
+    );
+
+    if (matchedCategory) {
+      setSelectedCategory(matchedCategory);
+    }
+  }, [requestedCategoryId, categories]);
 
   const handleSubmitIssue = async () => {
     setError("");
@@ -62,7 +124,7 @@ const ReportIssuePage = () => {
       return;
     }
 
-    if (!category.trim()) {
+    if (!selectedCategory) {
       setError("Please select a category.");
       return;
     }
@@ -100,8 +162,6 @@ const ReportIssuePage = () => {
     try {
       setLoading(true);
 
-      const user = auth.currentUser;
-
       if (!user) {
         throw new Error("You must be logged in to submit an issue.");
       }
@@ -117,9 +177,9 @@ const ReportIssuePage = () => {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          category: category.trim(),
+          categoryId: selectedCategory.id,
           addressLine1: addressLine1.trim(),
-          addressLine2: addressLine2.trim(),
+          addressLine2: addressLine2.trim() || null,
           town: town.trim(),
           city: city.trim(),
           county: county.trim(),
@@ -128,8 +188,6 @@ const ReportIssuePage = () => {
       });
 
       const data = await response.json();
-
-      console.log("Create issue response:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to submit issue");
@@ -185,27 +243,30 @@ const ReportIssuePage = () => {
             <button
               type="button"
               className="input-civic flex items-center justify-between text-left"
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => setShowDropdown((prev) => !prev)}
+              disabled={categoriesLoading || categories.length === 0}
             >
-              <span className={category ? "text-foreground" : "text-muted-foreground"}>
-                {category || "Select a category"}
+              <span className={selectedCategory ? "text-foreground" : "text-muted-foreground"}>
+                {categoriesLoading
+                  ? "Loading categories..."
+                  : selectedCategory?.name || "Select a category"}
               </span>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </button>
 
-            {showDropdown && (
+            {showDropdown && !categoriesLoading && categories.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden">
-                {CATEGORIES.map((c) => (
+                {categories.map((category) => (
                   <button
-                    key={c}
+                    key={category.id}
                     type="button"
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors text-foreground"
                     onClick={() => {
-                      setCategory(c);
+                      setSelectedCategory(category);
                       setShowDropdown(false);
                     }}
                   >
-                    {c}
+                    {category.name}
                   </button>
                 ))}
               </div>
@@ -218,7 +279,7 @@ const ReportIssuePage = () => {
             </label>
             <textarea
               className="input-civic min-h-[100px] resize-none"
-              placeholder="Describe the issue in detail..."
+              placeholder="Describe the issue in detail. The more you tell us about the issue, the better we can help."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -238,15 +299,12 @@ const ReportIssuePage = () => {
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Address 1
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                className="input-civic pl-10"
-                placeholder="Enter address line 1"
-                value={addressLine1}
-                onChange={(e) => setAddressLine1(e.target.value)}
-              />
-            </div>
+            <input
+              className="input-civic"
+              placeholder="Enter address line 1"
+              value={addressLine1}
+              onChange={(e) => setAddressLine1(e.target.value)}
+            />
           </div>
 
           <div>
@@ -377,7 +435,7 @@ const ReportIssuePage = () => {
           <button
             className="btn-primary-civic flex-1"
             onClick={handleSubmitIssue}
-            disabled={loading}
+            disabled={loading || categoriesLoading}
           >
             {loading ? "Submitting..." : "Submit Issue"}
           </button>

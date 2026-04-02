@@ -64,7 +64,7 @@ model Issue {
   caseId       String      @unique
   title        String
   description  String
-  category     String
+  categoryId   Int?
   addressLine1 String
   addressLine2 String?
   town         String
@@ -78,6 +78,7 @@ model Issue {
   updatedAt    DateTime    @updatedAt
 
   citizen User           @relation("CitizenIssues", fields: [citizenId], references: [id], onDelete: Cascade)
+  category   Category? @relation(fields: [categoryId], references: [id])
   staff   Staff?         @relation(fields: [staffId], references: [id])
   notes   Note[]
   history IssueHistory[]
@@ -85,7 +86,7 @@ model Issue {
   @@index([citizenId])
   @@index([staffId])
   @@index([status])
-  @@index([category])
+  @@index([categoryId])
   @@index([createdAt])
 }
 
@@ -120,4 +121,15 @@ model Note {
 
   @@index([issueId])
   @@index([staffId])
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  issues      Issue[]
 }

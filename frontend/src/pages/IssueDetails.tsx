@@ -4,6 +4,7 @@ import {
   Tag,
   FileText,
   CheckCircle2,
+  BadgeCheck,
   AlertCircle,
   MessageSquare,
 } from "lucide-react";
@@ -12,6 +13,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
+
+type ApiCategory = {
+  id: number;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+};
 
 type IssueNote = {
   id: number;
@@ -47,7 +55,8 @@ type IssueDetails = {
   caseId: string;
   title: string;
   description: string;
-  category: string;
+  categoryId: number;
+  category: ApiCategory | null;
   status: string;
   addressLine1: string;
   addressLine2?: string | null;
@@ -118,6 +127,10 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getCategoryName = (issue: IssueDetails) => {
+  return issue.category?.name || "Uncategorised";
+};
+
 const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
   const statusDates: Record<string, string> = {
     CREATED: formatDate(issue.createdAt),
@@ -147,7 +160,7 @@ const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
         key: "CANCELLED",
         label: "Cancelled",
         done: true,
-        date: statusDates.CANCELLED || "",
+        date: statusDates.CANCELLED || formatDate(issue.updatedAt),
       },
     ];
   }
@@ -281,14 +294,16 @@ const IssueDetailsPage = () => {
               <FileText size={12} className="shrink-0" /> {issue.caseId}
             </span>
             <span className="flex items-center gap-1.5">
-              <Tag size={12} className="shrink-0" /> {issue.category}
+              <Calendar size={12} className="shrink-0" /> {formatDate(issue.createdAt)}
             </span>
             <span className="flex items-center gap-1.5">
               <MapPin size={12} className="shrink-0" /> {issue.town}
             </span>
             <span className="flex items-center gap-1.5">
-              <Calendar size={12} className="shrink-0" /> {formatDate(issue.createdAt)}
+              <Tag size={12} className="shrink-0" /> {getCategoryName(issue)}
             </span>
+            
+            
           </div>
         </motion.div>
 
@@ -299,7 +314,19 @@ const IssueDetailsPage = () => {
           </p>
         </motion.div>
 
-        <motion.div {...fadeUp(0.1)} className="card-civic space-y-3">
+        <motion.div {...fadeUp(0.1)} className="card-civic space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">Location</h3>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>{issue.addressLine1}</p>
+            {issue.addressLine2 && <p>{issue.addressLine2}</p>}
+            <p>{issue.town}</p>
+            <p>{issue.city}</p>
+            <p>{issue.county}</p>
+            <p>{issue.eircode}</p>
+          </div>
+        </motion.div>
+
+        <motion.div {...fadeUp(0.15)} className="card-civic space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Status Timeline</h3>
           <div className="relative pl-5">
             {timeline.map((step, idx) => {
@@ -347,8 +374,8 @@ const IssueDetailsPage = () => {
           </div>
         </motion.div>
 
-        {issue.notes.length > 0 && (
-          <motion.div {...fadeUp(0.15)} className="card-civic space-y-3">
+        {issue.notes?.length > 0 && (
+          <motion.div {...fadeUp(0.2)} className="card-civic space-y-3">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <MessageSquare size={14} /> Official Updates
             </h3>
@@ -376,22 +403,25 @@ const IssueDetailsPage = () => {
           </motion.div>
         )}
 
-        {issue.notes.length === 0 && issue.status === "UNDER_REVIEW" && (
+        {(!issue.notes || issue.notes.length === 0) && issue.status === "UNDER_REVIEW" && (
           <motion.div
-            {...fadeUp(0.2)}
+            {...fadeUp(0.25)}
             className="card-civic border-warning/30 bg-warning/5 space-y-2.5"
-          >
+            >
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <AlertCircle size={14} className="text-warning" /> Under Review
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Your report has been received and is currently under review by the team.
+              Your report is in the queue and our team is reviewing it. We'll update you once there's progress.
             </p>
           </motion.div>
         )}
 
-        {(issue.status === "RESOLVED" || issue.status === "CLOSED") && (
-          <motion.div {...fadeUp(0.2)} className="card-civic bg-accent/5 border-accent/20">
+        {(issue.status === "RESOLVED") && (
+          <motion.div
+            {...fadeUp(0.25)}
+            className="card-civic bg-accent/5 border-accent/20"
+            >
             <div className="flex items-center gap-2 text-accent">
               <CheckCircle2 size={16} />
               <p className="text-sm font-medium">
@@ -401,21 +431,35 @@ const IssueDetailsPage = () => {
           </motion.div>
         )}
 
-       <motion.div {...fadeUp(0.25)} className="grid grid-cols-2 gap-2.5 pt-2">
-        <button
-          onClick={() => navigate("/my-issues")}
-          className="btn-primary-civic w-full text-sm py-3"
-        >
-          Back to My Issues
-        </button>
+        {(issue.status === "CLOSED") && (
+          <motion.div
+            {...fadeUp(0.25)}
+            className="card-civic bg-accent/5 border-accent/20"
+            >
+              <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-4">
+                <BadgeCheck size={20} className="text-accent" /> All Done
+              </h3>
+                <p className="text-sm font-medium text-accent">
+                  This issue has been resolved and closed. Thanks for helping make the city better.
+                </p>
+          </motion.div>
+        )}
 
-        <button
-          onClick={() => navigate("/report")}
-          className="flex-1 flex items-center justify-center gap-2 text-sm rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground hover:bg-muted transition-colors"
-        >
-          Report Another Issue
-        </button>
-      </motion.div>
+        <motion.div {...fadeUp(0.3)} className="grid grid-cols-2 gap-2.5 pt-2">
+          <button
+            onClick={() => navigate("/my-issues")}
+            className="btn-primary-civic w-full text-sm py-3"
+          >
+            Back to My Issues
+          </button>
+
+          <button
+            onClick={() => navigate("/report")}
+            className="flex-1 flex items-center justify-center gap-2 text-sm rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Report Another Issue
+          </button>
+        </motion.div>
       </main>
     </div>
   );
