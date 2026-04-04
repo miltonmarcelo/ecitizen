@@ -8,6 +8,11 @@ coverage
 *.log
 frontend/node_modules
 frontend/dist
+
 backend/node_modules
 backend/prisma/dev.db
 backend/prisma/dev.db-journal*.zip
+backend/secrets/
+backend/firebase-service-account.json
+backend/dev.db
+backend/dev.db-journal

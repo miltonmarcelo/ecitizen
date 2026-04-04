@@ -63,7 +63,7 @@ const ChangePasswordPage = () => {
 
       const idToken = await user.getIdToken(true);
 
-      const response = await fetch("http://localhost:5001/api/users/change-password", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
