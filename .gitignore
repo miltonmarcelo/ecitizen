@@ -6,6 +6,7 @@ build
 coverage
 .DS_Store
 *.log
+*.zip
 frontend/node_modules
 frontend/dist
 
