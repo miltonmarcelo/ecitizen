@@ -216,7 +216,7 @@ const ReportSuccessPage = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              You can track progress anytime from<button onClick={() => navigate("/my-issues")} className="text-primary">My Issues.</button>
+              You can track progress anytime from<button onClick={() => navigate("/my-reports")} className="text-primary">My Reports.</button>
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />

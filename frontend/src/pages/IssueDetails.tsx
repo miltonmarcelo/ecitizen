@@ -7,6 +7,11 @@ import {
   BadgeCheck,
   AlertCircle,
   MessageSquare,
+  Clipboard,
+  ClipboardCheck,
+  Eye,
+  Wrench,
+  CircleX,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
@@ -242,7 +247,7 @@ const IssueDetailsPage = () => {
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <TopBar showBack backTo="/my-issues" showProfile />
+        <TopBar showBack backTo="/my-reports" showProfile />
         <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
           <div className="card-civic text-center py-10">
             <p className="text-sm text-muted-foreground">Loading issue details...</p>
@@ -261,10 +266,10 @@ const IssueDetailsPage = () => {
           {error || "The report you're looking for doesn't exist."}
         </p>
         <button
-          onClick={() => navigate("/my-issues")}
+          onClick={() => navigate("/my-reports")}
           className="btn-primary text-sm px-6 py-2.5"
         >
-          Back to My Issues
+          Back to My Reports
         </button>
       </div>
     );
@@ -272,7 +277,7 @@ const IssueDetailsPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopBar showBack backTo="/my-issues" showProfile />
+      <TopBar showBack backTo="/my-reports" showProfile />
 
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-4">
         <motion.div {...fadeUp(0)} className="card-civic space-y-3">
@@ -408,12 +413,12 @@ const IssueDetailsPage = () => {
             {...fadeUp(0.25)}
             className="card-civic border-warning/30 bg-warning/5 space-y-2.5"
             >
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <AlertCircle size={14} className="text-warning" /> Under Review
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Your report is in the queue and our team is reviewing it. We'll update you once there's progress.
-            </p>
+            <div className="flex items-center gap-2 text-warning">
+              <Eye size={30}/>
+              <p className="text-sm font-medium">
+                Your report is in the queue and our team is reviewing it. We'll update you once there's progress.
+              </p>
+            </div>
           </motion.div>
         )}
 
@@ -423,9 +428,37 @@ const IssueDetailsPage = () => {
             className="card-civic bg-accent/5 border-accent/20"
             >
             <div className="flex items-center gap-2 text-accent">
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={30} />
               <p className="text-sm font-medium">
-                This issue has been {formatStatusLabel(issue.status).toLowerCase()}.
+                Great news! Our team has resolved this issue. This report will be automatically closed soon.
+              </p>
+            </div>
+          </motion.div>
+        )}
+        
+        {(issue.status === "IN_PROGRESS") && (
+          <motion.div
+            {...fadeUp(0.25)}
+            className="card-civic bg-warning/5 border-warning/20"
+            >
+            <div className="flex items-center gap-2 text-warning">
+              <Wrench size={30} />
+              <p className="text-sm font-medium">
+                Our team is actively working on this issue. We'll keep you updated as things move forward.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+         {(issue.status === "CANCELLED") && (
+          <motion.div
+            {...fadeUp(0.25)}
+            className="card-civic bg-destructive/5 border-destructive/20"
+            >
+            <div className="flex items-center gap-2 text-destructive">
+              <CircleX size={30} />
+              <p className="text-sm font-medium">
+                This report has been cancelled. Feel free to reopen or submit a new report anytime.
               </p>
             </div>
           </motion.div>
@@ -436,21 +469,35 @@ const IssueDetailsPage = () => {
             {...fadeUp(0.25)}
             className="card-civic bg-accent/5 border-accent/20"
             >
-              <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-4">
-                <BadgeCheck size={20} className="text-accent" /> All Done
-              </h3>
-                <p className="text-sm font-medium text-accent">
-                  This issue has been resolved and closed. Thanks for helping make the city better.
-                </p>
+            <div className="flex items-center gap-2 text-accent">
+              <CheckCircle2 size={16} />
+              <p className="text-sm font-medium">
+                This issue has been resolved and closed. Thanks for helping make the city better.
+              </p>
+            </div>
+          </motion.div>
+        )}
+         {(issue.status === "CREATED") && (
+          <motion.div
+            {...fadeUp(0.25)}
+            className="card-civic bg-primary/5 border-primary/20"
+            >
+            <div className="flex items-center gap-2 text-primary">
+              <ClipboardCheck size={30} />
+              <p className="text-sm font-medium">
+                We've received your report and will get to work on it. We'll keep you posted.
+              </p>
+            </div>
           </motion.div>
         )}
 
+
         <motion.div {...fadeUp(0.3)} className="grid grid-cols-2 gap-2.5 pt-2">
           <button
-            onClick={() => navigate("/my-issues")}
+            onClick={() => navigate("/my-reports")}
             className="btn-primary-civic w-full text-sm py-3"
           >
-            Back to My Issues
+            Back to My Reports
           </button>
 
           <button

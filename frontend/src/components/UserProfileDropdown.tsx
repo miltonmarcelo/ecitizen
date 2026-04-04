@@ -1,4 +1,4 @@
-import { User, Mail, CalendarDays, CheckCircle, LogOut, KeyRound } from "lucide-react";
+import { User, Mail, CalendarDays, CheckCircle, LogOut, KeyRound, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 
@@ -16,10 +16,12 @@ const UserProfileDropdown = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Basic fallback values in case user data is missing.
   const fullName = user?.displayName || "Citizen User";
   const firstName = fullName ? fullName.split(" ")[0] : "";
   const email = user?.email || "No email available";
 
+  // Format account creation date to show in the profile menu.
   const creationTime = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString("en-IE", {
         day: "2-digit",
@@ -28,6 +30,7 @@ const UserProfileDropdown = () => {
       })
     : "Not available";
 
+  // Format last login date and time.
   const lastSignInTime = user?.metadata?.lastSignInTime
     ? new Date(user.metadata.lastSignInTime).toLocaleString("en-IE", {
         day: "2-digit",
@@ -38,6 +41,7 @@ const UserProfileDropdown = () => {
       })
     : "Not available";
 
+  // Sign out from Firebase and send user back to home page.
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -51,6 +55,10 @@ const UserProfileDropdown = () => {
     navigate("/change-password");
   };
 
+  const handleContactUs = () => {
+    navigate("/contact");
+  };
+
   return (
     <div className="flex items-center gap-4">
       {firstName && (
@@ -59,6 +67,7 @@ const UserProfileDropdown = () => {
         </span>
       )}
 
+      {/* Dropdown button + menu with user details and quick actions. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2 rounded-full hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -94,17 +103,25 @@ const UserProfileDropdown = () => {
 
           <DropdownMenuItem
             onClick={handleChangePassword}
-            className="m-1 cursor-pointer"
+            className="m-1 cursor-pointer focus:bg-primary/10 focus:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
           >
-            <KeyRound className="w-4 h-4 mr-2" />
+            <KeyRound className="w-4 h-4 mr-2 text-current" />
             Change Password
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onClick={handleSignOut}
-            className="m-1 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+            onClick={handleContactUs}
+            className="m-1 cursor-pointer focus:bg-primary/10 focus:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
           >
-            <LogOut className="w-4 h-4 mr-2" />
+            <MessageSquare className="w-4 h-4 mr-2 text-current" />
+            Contact Us
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={handleSignOut}
+            className="m-1 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive"
+          >
+            <LogOut className="w-4 h-4 mr-2 text-current" />
             Sign Out
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -119,6 +136,7 @@ type ProfileRowProps = {
   value: string;
 };
 
+// Small reusable row used to show one profile info item.
 const ProfileRow = ({ icon: Icon, label, value }: ProfileRowProps) => {
   return (
     <div className="flex items-center gap-2.5">

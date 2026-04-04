@@ -100,7 +100,7 @@ const getCategoryName = (issue: ApiIssue) => {
   return issue.category?.name || "Uncategorised";
 };
 
-const MyIssuesPage = () => {
+const MyReportsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -255,9 +255,9 @@ const MyIssuesPage = () => {
 
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
         <motion.div {...fadeUp(0)}>
-          <h2 className="text-xl font-bold text-foreground">My Reported Issues</h2>
+          <h2 className="text-xl font-bold text-foreground">My Reports</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            View, search, and track the issues you have submitted.
+            All your submitted reports, in one place.
           </p>
         </motion.div>
 
@@ -477,4 +477,4 @@ const MyIssuesPage = () => {
   );
 };
 
-export default MyIssuesPage;
+export default MyReportsPage;

@@ -6,16 +6,11 @@ import {
   Construction,
   MapPin,
   ChevronRight,
-  Zap,
   Lightbulb,
   Trash2,
-  ThumbsUp,
-  ArrowRight,
   History,
   TriangleAlert,
-  Footprints,
   Waves,
-  BusFront,
   ShieldAlert,
   FileText,
   Tag,
@@ -50,36 +45,6 @@ type ApiIssue = {
   createdAt: string;
   updatedAt: string;
 };
-
-const NEARBY_ISSUES = [
-  {
-    id: 4,
-    icon: Zap,
-    title: "Power outage in Block C",
-    area: "Block C, 0.3 km away",
-    supporters: 12,
-    status: "Open",
-    statusColor: "bg-primary/15 text-primary",
-  },
-  {
-    id: 5,
-    icon: Trash2,
-    title: "Illegal dumping near river",
-    area: "River BusFront, 0.8 km away",
-    supporters: 8,
-    status: "In Progress",
-    statusColor: "bg-warning/15 text-warning",
-  },
-  {
-    id: 6,
-    icon: Lightbulb,
-    title: "Faulty traffic signal",
-    area: "Oak Avenue, 1.2 km away",
-    supporters: 5,
-    status: "Open",
-    statusColor: "bg-primary/15 text-primary",
-  },
-];
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
@@ -285,21 +250,24 @@ const DashboardPage = () => {
         value: createdCount,
         icon: AlertCircle,
         color: "text-primary",
-        bg: "bg-primary/10",
+        bg: "bg-primary/15",
+        iconBg: "bg-primary/20",
       },
       {
         label: "In Progress",
         value: inProgressCount,
         icon: Clock,
         color: "text-warning",
-        bg: "bg-warning/10",
+        bg: "bg-warning/15",
+        iconBg: "bg-warning/20",
       },
       {
         label: "Resolved",
         value: resolvedCount,
         icon: CheckCircle2,
         color: "text-accent",
-        bg: "bg-accent/10",
+        bg: "bg-accent/15",
+        iconBg: "bg-accent/20",
       },
     ];
   }, [issues]);
@@ -416,28 +384,30 @@ const DashboardPage = () => {
               <Plus size={16} /> Report New Issue
             </button>
             <button
-              onClick={() => navigate("/my-issues")}
+              onClick={() => navigate("/my-reports")}
               className="flex-1 flex items-center justify-center gap-2 text-sm rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground hover:bg-muted transition-colors"
             >
-              View My Issues
+              My Reports
             </button>
           </div>
         </motion.div>
 
         <motion.div {...fadeUp(0.1)}>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-3">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="card-civic flex flex-col items-center py-3 px-1 text-center"
+                className={`${stat.bg} rounded-2xl border border-border/50 px-3 py-4 text-center shadow-sm`}
               >
-                <div className={`w-8 h-8 rounded-full ${stat.bg} flex items-center justify-center mb-1.5`}>
-                  <stat.icon size={15} className={stat.color} />
+                <div
+                  className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full ${stat.iconBg}`}
+                >
+                  <stat.icon size={18} className={stat.color} />
                 </div>
-                <span className="text-lg font-bold text-foreground leading-none">
+                <span className="block text-2xl font-bold text-foreground leading-none">
                   {loading ? "..." : stat.value}
                 </span>
-                <span className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                <span className="mt-1 block text-xs font-medium text-muted-foreground leading-tight">
                   {stat.label}
                 </span>
               </div>
@@ -449,7 +419,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground">My Recent Issues</h2>
             <button
-              onClick={() => navigate("/my-issues")}
+              onClick={() => navigate("/my-reports")}
               className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
             >
               View all <ChevronRight size={12} />
@@ -508,45 +478,6 @@ const DashboardPage = () => {
         </motion.div>
 
         <motion.div {...fadeUp(0.3)}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-foreground">Issues Near Me</h2>
-            <button
-              onClick={() => navigate("/area-issues")}
-              className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
-            >
-              View all <ChevronRight size={12} />
-            </button>
-          </div>
-          <div className="space-y-2.5">
-            {NEARBY_ISSUES.map((issue) => (
-              <div key={issue.id} className="card-civic flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <issue.icon size={16} className="text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{issue.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{issue.area}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${issue.statusColor}`}>
-                      {issue.status}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                      <ThumbsUp size={10} /> {issue.supporters} supporters
-                    </span>
-                  </div>
-                </div>
-                <button onClick={() => navigate("/area-issues")} className="shrink-0 mt-1">
-                  <ArrowRight
-                    size={14}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div {...fadeUp(0.4)}>
           <h2 className="text-sm font-semibold text-foreground mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-2.5">
             {quickActions.map((action) => (
