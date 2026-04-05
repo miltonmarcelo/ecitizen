@@ -97,7 +97,7 @@ const RegisterPage = () => {
         throw new Error(data.message || data.details || "Failed to sync user");
       }
 
-      navigate("/my-reports");
+      navigate("/dashboard");
     } catch (err: any) {
       console.error("Register error:", err);
 

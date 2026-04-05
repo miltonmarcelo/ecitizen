@@ -2,8 +2,9 @@ import { CheckCircle, FileText, Calendar, Tag, ArrowRight, LayoutDashboard, Plus
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { auth } from "@/firebase/firebase";
 import TopBar from "@/components/TopBar";
+import { useAuth } from "@/context/AuthContext";
+import { formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -29,33 +30,10 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const formatStatus = (status: string) => {
-  return status
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-const getStatusClass = (status: string) => {
-  switch (status) {
-    case "OPEN":
-      return "bg-primary/10 text-primary";
-    case "IN_PROGRESS":
-      return "bg-warning/10 text-warning";
-    case "RESOLVED":
-      return "bg-green-100 text-green-700";
-    case "CLOSED":
-      return "bg-muted text-muted-foreground";
-    case "CANCELLED":
-      return "bg-red-100 text-red-700";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
-
 const ReportSuccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
 
   const caseId = location.state?.caseId;
 
@@ -65,6 +43,8 @@ const ReportSuccessPage = () => {
 
   useEffect(() => {
     const fetchIssue = async () => {
+      if (authLoading) return;
+
       if (!caseId) {
         setError("No case ID was provided.");
         setLoading(false);
@@ -72,8 +52,6 @@ const ReportSuccessPage = () => {
       }
 
       try {
-        const user = auth.currentUser;
-
         if (!user) {
           throw new Error("You must be logged in to view this page.");
         }
@@ -117,7 +95,7 @@ const ReportSuccessPage = () => {
     };
 
     fetchIssue();
-  }, [caseId]);
+  }, [caseId, user, authLoading]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,9 +167,9 @@ const ReportSuccessPage = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <span
-                    className={`inline-block text-[11px] bg-primary/15 text-primary font-medium px-2.5 py-0.5 rounded-full mt-0.5 ${getStatusClass(issue.status)}`}
+                    className={`inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full mt-0.5 ${getIssueStatusClass(issue.status)}`}
                   >
-                    {formatStatus(issue.status)}
+                    {issue.status === "CREATED" ? "Created" : formatIssueStatus(issue.status)}
                   </span>
                 </div>
               </div>
@@ -216,7 +194,12 @@ const ReportSuccessPage = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              You can track progress anytime from<button onClick={() => navigate("/my-reports")} className="text-primary">My Reports.</button>
+              <span>
+                You can track progress anytime from{" "}
+                <button onClick={() => navigate("/my-reports")} className="text-primary">
+                  My Reports
+                </button>.
+              </span>
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />

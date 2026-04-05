@@ -2,6 +2,12 @@ const express = require("express");
 const prisma = require("../lib/prisma");
 const auth = require("../middleware/auth");
 const generateCaseId = require("../utils/generateCaseId");
+const {
+  ROLES,
+  ISSUE_STATUS,
+  ISSUE_EVENT_TYPE,
+  ALL_ISSUE_STATUSES,
+} = require("../constants/domain");
 
 const router = express.Router();
 
@@ -23,11 +29,11 @@ async function generateUniqueCaseId() {
 }
 
 function isCitizen(user) {
-  return user && user.role === "CITIZEN";
+  return user && user.role === ROLES.CITIZEN;
 }
 
 function isStaff(user) {
-  return user && user.role === "STAFF";
+  return user && user.role === ROLES.STAFF;
 }
 
 router.post("/", auth, async (req, res) => {
@@ -45,7 +51,8 @@ router.post("/", auth, async (req, res) => {
       town,
       city,
       county,
-      eircode,
+      latitude,
+      longitude,
     } = req.body;
 
     const parsedCategoryId = Number(categoryId);
@@ -55,12 +62,10 @@ router.post("/", auth, async (req, res) => {
       !description ||
       !parsedCategoryId ||
       !addressLine1 ||
-      !town ||
       !city ||
-      !county ||
-      !eircode
+      !county
     ) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "Title, description, category, address, city and county are required" });
     }
 
     const existingCategory = await prisma.category.findUnique({
@@ -82,10 +87,11 @@ router.post("/", auth, async (req, res) => {
           categoryId: parsedCategoryId,
           addressLine1,
           addressLine2: addressLine2 || null,
-          town,
+          town: town || null,
           city,
           county,
-          eircode,
+          latitude: typeof latitude === "number" ? latitude : null,
+          longitude: typeof longitude === "number" ? longitude : null,
           citizenId: req.user.id,
         },
         include: {
@@ -96,8 +102,8 @@ router.post("/", auth, async (req, res) => {
       await tx.issueHistory.create({
         data: {
           issueId: newIssue.id,
-          eventType: "CREATED",
-          toStatus: "CREATED",
+          eventType: ISSUE_EVENT_TYPE.CREATED,
+          toStatus: ISSUE_STATUS.CREATED,
           changedByUserId: req.user.id,
           comment: "Issue created",
         },
@@ -126,10 +132,12 @@ router.get("/my", auth, async (req, res) => {
     }
 
     const { search, status, category, sort } = req.query;
+    const normalizedStatus =
+      status && ALL_ISSUE_STATUSES.includes(String(status)) ? String(status) : undefined;
 
     const where = {
       citizenId: req.user.id,
-      ...(status ? { status } : {}),
+      ...(normalizedStatus ? { status: normalizedStatus } : {}),
       ...(category
         ? {
             category: {
@@ -183,9 +191,11 @@ router.get("/", auth, async (req, res) => {
     }
 
     const { search, status, category, sort } = req.query;
+    const normalizedStatus =
+      status && ALL_ISSUE_STATUSES.includes(String(status)) ? String(status) : undefined;
 
     const where = {
-      ...(status ? { status } : {}),
+      ...(normalizedStatus ? { status: normalizedStatus } : {}),
       ...(category
         ? {
             category: {

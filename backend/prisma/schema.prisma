@@ -67,10 +67,11 @@ model Issue {
   categoryId   Int?
   addressLine1 String
   addressLine2 String?
-  town         String
+  town         String?
   city         String
   county       String
-  eircode      String
+  latitude     Float?
+  longitude    Float?
   status       IssueStatus @default(CREATED)
   citizenId    Int
   staffId      Int?

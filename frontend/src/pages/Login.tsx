@@ -1,4 +1,4 @@
-import { Eye, EyeOff, FileText, Bell, Search } from "lucide-react";
+import { Eye, EyeOff, FileText, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,6 @@ import TopBar from "@/components/TopBar";
 const HELP_ITEMS = [
   { icon: FileText, text: "Submit and manage issue reports" },
   { icon: Search, text: "Track progress on your cases" },
-  { icon: Bell, text: "Get notified when status changes" },
 ];
 
 const LoginPage = () => {
@@ -51,7 +50,6 @@ const LoginPage = () => {
       }
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
       const token = await userCredential.user.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
@@ -71,7 +69,11 @@ const LoginPage = () => {
         throw new Error(data.message || "Failed to sync user");
       }
 
-      navigate("/dashboard");
+      if (data.user?.role === "STAFF") {
+        navigate("/staff/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: any) {
       if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get My Issue
+url: "{{baseUrl}}/api/issues/my"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseToken}}
+order: 1050432398210002

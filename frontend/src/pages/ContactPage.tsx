@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
+import ReCAPTCHA from "react-google-recaptcha";
 import TopBar from "@/components/TopBar";
 
 type FormData = {
@@ -20,6 +21,7 @@ const MIN_MESSAGE_LENGTH = 50;
 const EMAILJS_SERVICE_ID = "service_u0wnwlc";
 const EMAILJS_TEMPLATE_ID = "template_sdwe1a3";
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
@@ -28,6 +30,8 @@ const fadeUp = (delay = 0) => ({
 });
 
 const ContactPage = () => {
+  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -125,6 +129,12 @@ const ContactPage = () => {
     setSubmitStatus("idle");
   };
 
+  const resetCaptcha = () => {
+    if (recaptchaRef.current) {
+      recaptchaRef.current.reset();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitStatus("idle");
@@ -143,8 +153,26 @@ const ContactPage = () => {
       return;
     }
 
+    if (!RECAPTCHA_SITE_KEY) {
+      setSubmitStatus("error");
+      setErrors({
+        submit: "reCAPTCHA is not configured. Please set VITE_RECAPTCHA_SITE_KEY.",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+
+      const token = await recaptchaRef.current?.executeAsync();
+
+      if (!token) {
+        setSubmitStatus("error");
+        setErrors({
+          submit: "reCAPTCHA verification failed. Please try again.",
+        });
+        return;
+      }
 
       await emailjs.send(
         EMAILJS_SERVICE_ID,
@@ -153,6 +181,7 @@ const ContactPage = () => {
           name: formData.name.trim(),
           email: formData.email.trim(),
           message: formData.message.trim(),
+          "g-recaptcha-response": token,
         },
         {
           publicKey: EMAILJS_PUBLIC_KEY,
@@ -166,11 +195,13 @@ const ContactPage = () => {
         message: "",
       });
       setErrors({});
+      resetCaptcha();
     } catch (error) {
       setSubmitStatus("error");
       setErrors({
         submit: "Something went wrong while sending your message. Please try again.",
       });
+      resetCaptcha();
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +209,7 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopBar showBack backTo="/dashboard" showProfile />
+      <TopBar showBack backTo="/" showProfile={false} />
 
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
         <motion.div {...fadeUp(0)}>
@@ -217,9 +248,7 @@ const ContactPage = () => {
                   errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
                 }`}
               />
-              {errors.name && (
-                <p className="mt-2 text-sm text-red-600">{errors.name}</p>
-              )}
+              {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
             </div>
 
             <div>
@@ -237,9 +266,7 @@ const ContactPage = () => {
                   errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
                 }`}
               />
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             <div>
@@ -271,14 +298,26 @@ const ContactPage = () => {
               </div>
             </div>
 
+            {RECAPTCHA_SITE_KEY ? (
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                size="invisible"
+              />
+            ) : (
+              <p className="text-sm text-red-600">
+                reCAPTCHA is not configured. Please set VITE_RECAPTCHA_SITE_KEY.
+              </p>
+            )}
+
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-70"
-                >
+              >
                 {isSubmitting ? "Sending..." : "Send message"}
-                </button>
+              </button>
             </div>
           </form>
         </motion.div>

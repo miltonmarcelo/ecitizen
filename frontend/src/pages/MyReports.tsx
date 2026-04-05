@@ -13,6 +13,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
+import type { IssueStatus } from "@/types/domain";
+import { ALL_ISSUE_STATUSES, formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
 
 type ApiCategory = {
   id: number;
@@ -28,7 +30,7 @@ type ApiIssue = {
   description: string;
   categoryId: number;
   category: ApiCategory | null;
-  status: string;
+  status: IssueStatus;
   addressLine1: string;
   addressLine2?: string | null;
   town: string;
@@ -39,49 +41,13 @@ type ApiIssue = {
   updatedAt: string;
 };
 
-const BASE_STATUSES = ["All", "CREATED", "UNDER_REVIEW", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELLED"];
-const SORT_OPTIONS = ["Newest first", "Oldest first", "Title A–Z", "Title Z–A"];
+const SORT_OPTIONS = ["Newest first", "Oldest first", "Title A-Z", "Title Z-A"];
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
   transition: { delay, duration: 0.35 },
 });
-
-const formatStatusLabel = (status: string) => {
-  switch (status) {
-    case "CREATED":
-      return "Created";
-    case "UNDER_REVIEW":
-      return "Under Review";
-    case "IN_PROGRESS":
-      return "In Progress";
-    case "RESOLVED":
-      return "Resolved";
-    case "CLOSED":
-      return "Closed";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return status;
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "RESOLVED":
-    case "CLOSED":
-      return "bg-accent/15 text-accent";
-    case "IN_PROGRESS":
-    case "UNDER_REVIEW":
-      return "bg-warning/15 text-warning";
-    case "CANCELLED":
-      return "bg-destructive/15 text-destructive";
-    case "CREATED":
-    default:
-      return "bg-primary/15 text-primary";
-  }
-};
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -106,7 +72,7 @@ const MyReportsPage = () => {
   const { user, loading: authLoading } = useAuth();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | IssueStatus>("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [sort, setSort] = useState("Newest first");
   const [showSort, setShowSort] = useState(false);
@@ -120,8 +86,8 @@ const MyReportsPage = () => {
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
-    if (statusParam && BASE_STATUSES.includes(statusParam)) {
-      setStatusFilter(statusParam);
+    if (statusParam && ALL_ISSUE_STATUSES.includes(statusParam as IssueStatus)) {
+      setStatusFilter(statusParam as IssueStatus);
     }
   }, [searchParams]);
 
@@ -205,10 +171,10 @@ const MyReportsPage = () => {
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         break;
-      case "Title A–Z":
+      case "Title A-Z":
         list = [...list].sort((a, b) => a.title.localeCompare(b.title));
         break;
-      case "Title Z–A":
+      case "Title Z-A":
         list = [...list].sort((a, b) => b.title.localeCompare(a.title));
         break;
       case "Newest first":
@@ -285,12 +251,13 @@ const MyReportsPage = () => {
             <div className="relative">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => setStatusFilter(e.target.value as "All" | IssueStatus)}
                 className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
-                {BASE_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s === "All" ? "Status" : formatStatusLabel(s)}
+                <option value="All">Status</option>
+                {ALL_ISSUE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {formatIssueStatus(status)}
                   </option>
                 ))}
               </select>
@@ -395,9 +362,9 @@ const MyReportsPage = () => {
                     {issue.title}
                   </h3>
                   <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${getStatusColor(issue.status)}`}
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${getIssueStatusClass(issue.status)}`}
                   >
-                    {formatStatusLabel(issue.status)}
+                    {formatIssueStatus(issue.status)}
                   </span>
                 </div>
 

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get My User
+url: "{{baseUrl}}/api/users/me"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseToken}}
+order: 4439106675455399

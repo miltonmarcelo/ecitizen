@@ -20,6 +20,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
+import { formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
+import type { IssueStatus } from "@/types/domain";
 
 type ApiCategory = {
   id: number;
@@ -35,7 +37,7 @@ type ApiIssue = {
   description: string;
   categoryId: number | null;
   category: ApiCategory | null;
-  status: "CREATED" | "UNDER_REVIEW" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "CANCELLED";
+  status: IssueStatus;
   addressLine1: string;
   addressLine2?: string | null;
   town: string;
@@ -54,41 +56,6 @@ const fadeUp = (delay = 0) => ({
 
 const normalizeName = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, " ");
-
-const getStatusLabel = (status: ApiIssue["status"]) => {
-  switch (status) {
-    case "CREATED":
-      return "Open";
-    case "UNDER_REVIEW":
-      return "Under Review";
-    case "IN_PROGRESS":
-      return "In Progress";
-    case "RESOLVED":
-      return "Resolved";
-    case "CLOSED":
-      return "Closed";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return status;
-  }
-};
-
-const getStatusColor = (status: ApiIssue["status"]) => {
-  switch (status) {
-    case "RESOLVED":
-    case "CLOSED":
-      return "bg-accent/15 text-accent";
-    case "IN_PROGRESS":
-    case "UNDER_REVIEW":
-      return "bg-warning/15 text-warning";
-    case "CANCELLED":
-      return "bg-destructive/15 text-destructive";
-    case "CREATED":
-    default:
-      return "bg-primary/15 text-primary";
-  }
-};
 
 const buildLocation = (issue: ApiIssue) => {
   return [issue.addressLine1, issue.town, issue.city].filter(Boolean).join(", ");
@@ -456,9 +423,9 @@ const DashboardPage = () => {
 
                     <div className="flex items-center gap-2 mt-2">
                       <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusColor(issue.status)}`}
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getIssueStatusClass(issue.status)}`}
                       >
-                        {getStatusLabel(issue.status)}
+                        {formatIssueStatus(issue.status)}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {formatDate(issue.createdAt)}

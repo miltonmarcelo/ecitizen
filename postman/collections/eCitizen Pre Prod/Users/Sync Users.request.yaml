@@ -1,0 +1,15 @@
+$kind: http-request
+name: Sync Users
+url: "{{baseUrl}}/api/users/sync"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Milton Test",
+      "email": "milton.test@example.com"
+    }
+order: 1775408958860

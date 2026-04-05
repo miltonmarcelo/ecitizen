@@ -18,6 +18,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
+import { CITIZEN_STATUS_FLOW, formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
 
 type ApiCategory = {
   id: number;
@@ -97,41 +98,6 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const formatStatusLabel = (status: string) => {
-  switch (status) {
-    case "CREATED":
-      return "Open";
-    case "UNDER_REVIEW":
-      return "Under Review";
-    case "IN_PROGRESS":
-      return "In Progress";
-    case "RESOLVED":
-      return "Resolved";
-    case "CLOSED":
-      return "Closed";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return status;
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "RESOLVED":
-    case "CLOSED":
-      return "bg-accent/15 text-accent";
-    case "IN_PROGRESS":
-    case "UNDER_REVIEW":
-      return "bg-warning/15 text-warning";
-    case "CANCELLED":
-      return "bg-destructive/15 text-destructive";
-    case "CREATED":
-    default:
-      return "bg-primary/15 text-primary";
-  }
-};
-
 const getCategoryName = (issue: IssueDetails) => {
   return issue.category?.name || "Uncategorised";
 };
@@ -157,34 +123,28 @@ const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
     return [
       {
         key: "CREATED",
-        label: "Report submitted",
+        label: formatIssueStatus("CREATED"),
         done: true,
         date: statusDates.CREATED || formatDate(issue.createdAt),
       },
       {
         key: "CANCELLED",
-        label: "Cancelled",
+        label: formatIssueStatus("CANCELLED"),
         done: true,
         date: statusDates.CANCELLED || formatDate(issue.updatedAt),
       },
     ];
   }
 
-  const orderedSteps = [
-    { key: "CREATED", label: "Report submitted" },
-    { key: "UNDER_REVIEW", label: "Under review" },
-    { key: "IN_PROGRESS", label: "In progress" },
-    { key: "RESOLVED", label: "Resolved" },
-    { key: "CLOSED", label: "Closed" },
-  ];
+  const orderedSteps = CITIZEN_STATUS_FLOW;
 
-  const currentIndex = orderedSteps.findIndex((step) => step.key === issue.status);
+  const currentIndex = orderedSteps.findIndex((status) => status === issue.status);
 
-  return orderedSteps.map((step, index) => ({
-    key: step.key,
-    label: step.label,
+  return orderedSteps.map((status, index) => ({
+    key: status,
+    label: formatIssueStatus(status),
     done: currentIndex >= index,
-    date: statusDates[step.key] || "",
+    date: statusDates[status] || "",
   }));
 };
 
@@ -286,11 +246,11 @@ const IssueDetailsPage = () => {
               {issue.title}
             </h2>
             <span
-              className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap ${getStatusColor(
+              className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap ${getIssueStatusClass(
                 issue.status
               )}`}
             >
-              {formatStatusLabel(issue.status)}
+              {formatIssueStatus(issue.status)}
             </span>
           </div>
 

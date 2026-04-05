@@ -1,0 +1,6 @@
+$kind: collection
+name: eCitizen Pre Prod
+variables:
+  baseUrl: ""
+  firebaseToken: ""
+  caseId: ""

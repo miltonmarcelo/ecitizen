@@ -1,8 +1,8 @@
-import { FileText, Search, Users, CheckCircle, BarChart3, Heart, ArrowRight, ClipboardList, Clock, ThumbsUp, User } from "lucide-react";
+import { FileText, Search, Users, CheckCircle, BarChart3, Heart, ArrowRight, ClipboardList, Clock, ThumbsUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import heroIllustration from "@/assets/hero-illustration.jpg";
-import { auth } from "@/firebase/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 const STATS = [
   { icon: ClipboardList, value: "128", label: "Issues Reported", color: "text-primary", bg: "bg-primary/10" },
@@ -30,12 +30,16 @@ const fadeUp = {
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
   const handleSubmitIssueClick = () => {
-  if (auth.currentUser) {
-    navigate("/report");
-  } else {
-    navigate("/login");
-  }
+    if (loading) return;
+
+    if (user) {
+      navigate("/report");
+    } else {
+      navigate("/login");
+    }
   };
 
   return (
@@ -47,27 +51,27 @@ const HomePage = () => {
             <span className="text-primary">e</span>Citizen
           </span>
           <div className="flex items-center gap-2">
-  <button
-    onClick={() => navigate("/staff/login")}
-    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
-  >
-    Staff Portal
-  </button>
+            <button
+              onClick={() => navigate("/staff/login")}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+            >
+              Staff Portal
+            </button>
 
-  <button
-    onClick={() => navigate("/login")}
-    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
-  >
-    Login
-  </button>
+            <button
+              onClick={() => navigate("/login")}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+            >
+              Login
+            </button>
 
-  <button
-    onClick={() => navigate("/register")}
-    className="btn-primary-civic !px-4 !py-2 text-xs"
-  >
-    Register
-  </button>
-</div>
+            <button
+              onClick={() => navigate("/register")}
+              className="btn-primary-civic !px-4 !py-2 text-xs"
+            >
+              Register
+            </button>
+          </div>
         </div>
       </header>
 
@@ -183,7 +187,7 @@ const HomePage = () => {
         <div className="max-w-lg mx-auto px-5 py-5 flex flex-col items-center gap-2">
           <div className="flex gap-6 text-xs text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors">About</a>
-            <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+            <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
           </div>
           <p className="text-[0.7rem] text-muted-foreground/60">© 2026 eCitizen. All rights reserved.</p>
         </div>

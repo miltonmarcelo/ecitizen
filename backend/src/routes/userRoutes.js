@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require("../lib/prisma");
 const auth = require("../middleware/auth");
 const admin = require("../config/firebaseAdmin");
+const { ROLES } = require("../constants/domain");
 
 router.post("/sync", auth, async (req, res) => {
   try {
@@ -24,6 +25,9 @@ router.post("/sync", auth, async (req, res) => {
       where: {
         OR: [{ firebaseUid }, { email }],
       },
+      include: {
+        staffProfile: true,
+      },
     });
 
     let user;
@@ -36,6 +40,9 @@ router.post("/sync", auth, async (req, res) => {
           email,
           fullName: finalName,
         },
+        include: {
+          staffProfile: true,
+        },
       });
     } else {
       user = await prisma.user.create({
@@ -43,7 +50,10 @@ router.post("/sync", auth, async (req, res) => {
           firebaseUid,
           email,
           fullName: finalName,
-          role: "CITIZEN",
+          role: ROLES.CITIZEN,
+        },
+        include: {
+          staffProfile: true,
         },
       });
     }
@@ -56,6 +66,31 @@ router.post("/sync", auth, async (req, res) => {
     console.error("User sync error:", error);
     return res.status(500).json({
       message: "Failed to sync user",
+      details: error.message,
+    });
+  }
+});
+
+router.get("/me", auth, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(404).json({
+        message: "User profile not found",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        staffProfile: true,
+      },
+    });
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("Get current user error:", error);
+    return res.status(500).json({
+      message: "Failed to load current user",
       details: error.message,
     });
   }
