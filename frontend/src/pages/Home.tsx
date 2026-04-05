@@ -1,6 +1,6 @@
 import { FileText, Search, Users, CheckCircle, BarChart3, Heart, ArrowRight, ClipboardList, Clock, ThumbsUp } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import heroIllustration from "@/assets/hero-illustration.jpg";
 import { useAuth } from "@/context/AuthContext";
 
@@ -187,7 +187,9 @@ const HomePage = () => {
         <div className="max-w-lg mx-auto px-5 py-5 flex flex-col items-center gap-2">
           <div className="flex gap-6 text-xs text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors">About</a>
-            <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
+            <Link to="/contact" className="hover:text-foreground transition-colors">
+              Contact
+            </Link>
           </div>
           <p className="text-[0.7rem] text-muted-foreground/60">© 2026 eCitizen. All rights reserved.</p>
         </div>
