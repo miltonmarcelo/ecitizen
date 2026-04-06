@@ -6,6 +6,7 @@ import TopBar from "@/components/TopBar";
 import MiniLocationMap from "@/components/MiniLocationMap";
 import { useAuth } from "@/context/AuthContext";
 import { formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
+import { dublinAreas, localAreasByDublinArea } from "@/data/dublinLocations";
 
 type Category = {
   id: number;
@@ -64,9 +65,11 @@ const ReportIssuePage = () => {
 
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
-  const [town, setTown] = useState("");
-  const [city, setCity] = useState("");
-  const [county, setCounty] = useState("");
+  const [suburb, setSuburb] = useState("");
+  const [area, setArea] = useState("");
+  const [city, setCity] = useState("Dublin");
+  const [county, setCounty] = useState("Dublin");
+  const localAreaOptions = area ? localAreasByDublinArea[area] || [] : [];
 
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -132,7 +135,7 @@ const ReportIssuePage = () => {
     locationMode === "gps-confirmed" || locationMode === "manual-confirmed";
 
   const summaryAddress1 = addressLine1 || "Not available";
-  const summaryCity = city || "Not available";
+  const summaryCity = area || "Not available";
 
   const getGeoapifyApiKey = () => {
     const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
@@ -144,10 +147,47 @@ const ReportIssuePage = () => {
     return apiKey;
   };
 
+  const mapPostcodeToDublinArea = (postcode: string): string => {
+    const normalized = postcode.trim().toUpperCase();
+
+    if (!normalized) return "";
+
+    const routingKey = normalized.startsWith("D6W")
+      ? "D6W"
+      : normalized.slice(0, 3);
+
+    const postcodeMap: Record<string, string> = {
+      D01: "Dublin 1",
+      D02: "Dublin 2",
+      D03: "Dublin 3",
+      D04: "Dublin 4",
+      D05: "Dublin 5",
+      D06: "Dublin 6",
+      D6W: "Dublin 6W",
+      D07: "Dublin 7",
+      D08: "Dublin 8",
+      D09: "Dublin 9",
+      D10: "Dublin 10",
+      D11: "Dublin 11",
+      D12: "Dublin 12",
+      D13: "Dublin 13",
+      D14: "Dublin 14",
+      D15: "Dublin 15",
+      D16: "Dublin 16",
+      D17: "Dublin 17",
+      D18: "Dublin 18",
+      D20: "Dublin 20",
+      D22: "Dublin 22",
+      D24: "Dublin 24",
+    };
+
+    return postcodeMap[routingKey] || "";
+  };
+
   const reverseGeocodeFromGeoapify = async (lat: number, lon: number) => {
     const apiKey = getGeoapifyApiKey();
 
-    const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${apiKey}`;
+    const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&format=json&apiKey=${apiKey}`;
     const response = await fetch(url);
     const data = await response.json();
 
@@ -155,7 +195,7 @@ const ReportIssuePage = () => {
       throw new Error(data?.message || "Failed to retrieve address from Geoapify.");
     }
 
-    const result = data?.features?.[0]?.properties;
+    const result = data?.results?.[0];
 
     if (!result) {
       throw new Error("No address was found for the selected location.");
@@ -172,16 +212,17 @@ const ReportIssuePage = () => {
     return {
       addressLine1: resolvedAddress1,
       addressLine2: "",
-      town: result.suburb || result.neighbourhood || result.district || "",
-      city: result.city || result.town || result.village || "",
-      county: result.county || result.state || "",
+      suburb: result.suburb || result.neighbourhood || result.district || result.city || "",
+      area: mapPostcodeToDublinArea(result.postcode || ""),
+      city: result.city || result.suburb || "Dublin",
+      county: "Dublin",
     };
   };
 
   const forwardGeocodeFromGeoapify = async () => {
     const apiKey = getGeoapifyApiKey();
 
-    const searchText = [addressLine1, addressLine2, town, city, county]
+    const searchText = [addressLine1, addressLine2, suburb, area, city, county]
       .filter(Boolean)
       .join(", ");
 
@@ -209,9 +250,10 @@ const ReportIssuePage = () => {
     return {
       latitude: result.lat as number,
       longitude: result.lon as number,
-      town: town || result.suburb || result.neighbourhood || result.district || "",
-      city: city || result.city || result.town || result.village || "",
-      county: county || result.county || result.state || "",
+      suburb: suburb || result.suburb || result.neighbourhood || result.district || result.city || "",
+      area: area || mapPostcodeToDublinArea(result.postcode || ""),
+      city: "Dublin",
+      county: "Dublin",
     };
   };
 
@@ -259,9 +301,10 @@ const ReportIssuePage = () => {
     setLocationMessage("");
     setAddressLine1("");
     setAddressLine2("");
-    setTown("");
-    setCity("");
-    setCounty("");
+    setSuburb("");
+    setArea("");
+    setCity("Dublin");
+    setCounty("Dublin");
   };
 
   const handleUseCurrentLocation = async () => {
@@ -306,9 +349,10 @@ const ReportIssuePage = () => {
 
       setAddressLine1(resolved.addressLine1);
       setAddressLine2(resolved.addressLine2);
-      setTown(resolved.town);
-      setCity(resolved.city);
-      setCounty(resolved.county);
+      setSuburb(resolved.suburb || "");
+      setArea(resolved.area || "");
+      setCity("Dublin");
+      setCounty("Dublin");
 
       setLocationMode("gps-confirmed");
       setLocationMessage(LOCATION_MESSAGES.confirmed);
@@ -326,14 +370,26 @@ const ReportIssuePage = () => {
     setLocationMode("manual-entry");
   };
 
+  const handleDublinAreaChange = (value: string) => {
+    setArea(value);
+    setSuburb("");
+    setCity("Dublin");
+    setCounty("Dublin");
+  };
+
   const handleConfirmManualLocation = async () => {
     if (!addressLine1.trim()) {
       setError("Please enter Address 1.");
       return;
     }
 
-    if (!city.trim()) {
-      setError("Please enter a city.");
+    if (!area.trim()) {
+      setError("Please select a Dublin Area.");
+      return;
+    }
+
+    if (!suburb.trim()) {
+      setError("Please select a Local Area.");
       return;
     }
 
@@ -345,9 +401,10 @@ const ReportIssuePage = () => {
 
       setLatitude(resolved.latitude);
       setLongitude(resolved.longitude);
-      setTown(resolved.town);
-      setCity(resolved.city);
-      setCounty(resolved.county);
+      setSuburb(suburb);
+      setArea(area);
+      setCity("Dublin");
+      setCounty("Dublin");
 
       setLocationMode("manual-confirmed");
       setLocationMessage(LOCATION_MESSAGES.confirmed);
@@ -404,8 +461,13 @@ const ReportIssuePage = () => {
       return;
     }
 
-    if (!city.trim()) {
-      setError("Please confirm a valid city.");
+    if (!area.trim()) {
+      setError("Please select a Dublin Area.");
+      return;
+    }
+
+    if (!suburb.trim()) {
+      setError("Please select a Local Area.");
       return;
     }
 
@@ -430,9 +492,10 @@ const ReportIssuePage = () => {
           categoryId: selectedCategory.id,
           addressLine1: addressLine1.trim(),
           addressLine2: addressLine2.trim() || null,
-          town: town.trim() || null,
-          city: city.trim(),
-          county: county.trim() || null,
+          suburb: suburb.trim() || null,
+          area: area.trim() || null,
+          city: city.trim() || "Dublin",
+          county: county.trim() || "Dublin",
           latitude,
           longitude,
         }),
@@ -641,40 +704,43 @@ const ReportIssuePage = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Area
-                  </label>
-                  <input
-                    className="input-civic"
-                    placeholder="Area, suburb, or locality optional"
-                    value={town}
-                    onChange={(e) => setTown(e.target.value)}
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                      Dublin Area
+                    </label>
+                    <select
+                      className="input-civic"
+                      value={area}
+                      onChange={(e) => handleDublinAreaChange(e.target.value)}
+                    >
+                      <option value="">Select Dublin Area</option>
+                      {dublinAreas.map((areaOption) => (
+                        <option key={areaOption} value={areaOption}>
+                          {areaOption}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Town or City
-                  </label>
-                  <input
-                    className="input-civic"
-                    placeholder="Enter town or city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    County
-                  </label>
-                  <input
-                    className="input-civic"
-                    placeholder="Enter county"
-                    value={county}
-                    onChange={(e) => setCounty(e.target.value)}
-                  />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                      Local Area
+                    </label>
+                    <select
+                      className="input-civic"
+                      value={suburb}
+                      onChange={(e) => setSuburb(e.target.value)}
+                      disabled={!area}
+                    >
+                      <option value="">Select Local Area</option>
+                      {localAreaOptions.map((localArea) => (
+                        <option key={localArea} value={localArea}>
+                          {localArea}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -694,14 +760,14 @@ const ReportIssuePage = () => {
               <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 space-y-3">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Address 1
+                    Address
                   </p>
                   <p className="text-sm text-foreground mt-1">{summaryAddress1}</p>
                 </div>
 
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    City
+                    Dublin Area
                   </p>
                   <p className="text-sm text-foreground mt-1">{summaryCity}</p>
                 </div>

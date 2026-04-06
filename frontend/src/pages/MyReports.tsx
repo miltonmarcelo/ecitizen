@@ -33,10 +33,10 @@ type ApiIssue = {
   status: IssueStatus;
   addressLine1: string;
   addressLine2?: string | null;
-  town: string;
+  suburb: string;
+  area: string;
   city: string;
   county: string;
-  eircode: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -59,7 +59,7 @@ const formatDate = (dateString: string) => {
 };
 
 const buildLocation = (issue: ApiIssue) => {
-  return [issue.addressLine1, issue.town, issue.city].filter(Boolean).join(", ");
+  return [issue.addressLine1, issue.suburb, issue.area].filter(Boolean).join(", ");
 };
 
 const getCategoryName = (issue: ApiIssue) => {
@@ -378,7 +378,7 @@ const MyReportsPage = () => {
                     <Calendar size={11} /> {formatDate(issue.createdAt)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <MapPin size={11} /> {issue.town}
+                    <MapPin size={11} /> {issue.suburb}
                   </span>
                   <span className="flex items-center gap-1">
                     <Tag size={11} /> {getCategoryName(issue)}

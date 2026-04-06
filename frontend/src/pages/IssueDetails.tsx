@@ -66,10 +66,10 @@ type IssueDetails = {
   status: string;
   addressLine1: string;
   addressLine2?: string | null;
-  town: string;
+  suburb: string;
+  area: string;
   city: string;
   county: string;
-  eircode: string;
   createdAt: string;
   updatedAt: string;
   notes: IssueNote[];
@@ -262,7 +262,7 @@ const IssueDetailsPage = () => {
               <Calendar size={12} className="shrink-0" /> {formatDate(issue.createdAt)}
             </span>
             <span className="flex items-center gap-1.5">
-              <MapPin size={12} className="shrink-0" /> {issue.town}
+              <MapPin size={12} className="shrink-0" /> {issue.suburb}
             </span>
             <span className="flex items-center gap-1.5">
               <Tag size={12} className="shrink-0" /> {getCategoryName(issue)}
@@ -284,10 +284,10 @@ const IssueDetailsPage = () => {
           <div className="text-sm text-muted-foreground space-y-1">
             <p>{issue.addressLine1}</p>
             {issue.addressLine2 && <p>{issue.addressLine2}</p>}
-            <p>{issue.town}</p>
+            <p>{issue.suburb}</p>
+            <p>{issue.area}</p>
             <p>{issue.city}</p>
             <p>{issue.county}</p>
-            <p>{issue.eircode}</p>
           </div>
         </motion.div>
 

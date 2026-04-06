@@ -40,10 +40,10 @@ type ApiIssue = {
   status: IssueStatus;
   addressLine1: string;
   addressLine2?: string | null;
-  town: string;
+  suburb: string;
+  area: string;
   city: string;
   county: string;
-  eircode: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -58,7 +58,7 @@ const normalizeName = (value: string) =>
   value.toLowerCase().trim().replace(/\s+/g, " ");
 
 const buildLocation = (issue: ApiIssue) => {
-  return [issue.addressLine1, issue.town, issue.city].filter(Boolean).join(", ");
+  return [issue.addressLine1, issue.suburb, issue.area].filter(Boolean).join(", ");
 };
 
 const getCategoryName = (issue: ApiIssue) => {

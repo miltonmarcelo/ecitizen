@@ -48,12 +48,15 @@ router.post("/", auth, async (req, res) => {
       categoryId,
       addressLine1,
       addressLine2,
-      town,
+      suburb,
+      area,
       city,
       county,
       latitude,
       longitude,
     } = req.body;
+    const resolvedCity = city?.trim() || "Dublin";
+    const resolvedCounty = county?.trim() || "Dublin";
 
     const parsedCategoryId = Number(categoryId);
 
@@ -62,10 +65,12 @@ router.post("/", auth, async (req, res) => {
       !description ||
       !parsedCategoryId ||
       !addressLine1 ||
-      !city ||
-      !county
+      !resolvedCity ||
+      !resolvedCounty
     ) {
-      return res.status(400).json({ message: "Title, description, category, address, city and county are required" });
+      return res.status(400).json({
+        message: "Title, description, category, address, city and county are required",
+      });
     }
 
     const existingCategory = await prisma.category.findUnique({
@@ -87,9 +92,10 @@ router.post("/", auth, async (req, res) => {
           categoryId: parsedCategoryId,
           addressLine1,
           addressLine2: addressLine2 || null,
-          town: town || null,
-          city,
-          county,
+          suburb: suburb || null,
+          area: area || null,
+          city: resolvedCity,
+          county: resolvedCounty,
           latitude: typeof latitude === "number" ? latitude : null,
           longitude: typeof longitude === "number" ? longitude : null,
           citizenId: req.user.id,
@@ -153,10 +159,10 @@ router.get("/my", auth, async (req, res) => {
               { caseId: { contains: String(search) } },
               { addressLine1: { contains: String(search) } },
               { addressLine2: { contains: String(search) } },
-              { town: { contains: String(search) } },
+              { suburb: { contains: String(search) } },
+              { area: { contains: String(search) } },
               { city: { contains: String(search) } },
               { county: { contains: String(search) } },
-              { eircode: { contains: String(search) } },
             ],
           }
         : {}),
@@ -211,10 +217,10 @@ router.get("/", auth, async (req, res) => {
               { caseId: { contains: String(search) } },
               { addressLine1: { contains: String(search) } },
               { addressLine2: { contains: String(search) } },
-              { town: { contains: String(search) } },
+              { suburb: { contains: String(search) } },
+              { area: { contains: String(search) } },
               { city: { contains: String(search) } },
               { county: { contains: String(search) } },
-              { eircode: { contains: String(search) } },
             ],
           }
         : {}),

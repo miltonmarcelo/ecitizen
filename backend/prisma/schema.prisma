@@ -67,7 +67,8 @@ model Issue {
   categoryId   Int?
   addressLine1 String
   addressLine2 String?
-  town         String?
+  suburb       String?
+  area         String?
   city         String
   county       String
   latitude     Float?
@@ -78,10 +79,10 @@ model Issue {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  citizen User           @relation("CitizenIssues", fields: [citizenId], references: [id], onDelete: Cascade)
-  category   Category? @relation(fields: [categoryId], references: [id])
-  staff   Staff?         @relation(fields: [staffId], references: [id])
-  notes   Note[]
+  citizen User        @relation("CitizenIssues", fields: [citizenId], references: [id], onDelete: Cascade)
+  category Category?  @relation(fields: [categoryId], references: [id])
+  staff Staff?        @relation(fields: [staffId], references: [id])
+  notes Note[]
   history IssueHistory[]
 
   @@index([citizenId])
