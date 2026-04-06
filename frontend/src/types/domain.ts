@@ -1,4 +1,4 @@
-export type Role = "CITIZEN" | "STAFF";
+export type Role = "CITIZEN" | "STAFF" | "ADMIN";
 
 export type IssueStatus =
   | "CREATED"

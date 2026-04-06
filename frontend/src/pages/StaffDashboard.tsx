@@ -1,9 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import SummaryCard from "@/components/dashboard/SummaryCard";
-import IssueTable, { Issue } from "@/components/dashboard/IssueTable";
-import SidePanel from "@/components/dashboard/SidePanel";
+import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
+import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
+import StaffSummaryCard from "@/components/dashboard/StaffSummaryCard";
+import StaffIssueTable from "@/components/dashboard/StaffIssueTable";
+import StaffSidePanel from "@/components/dashboard/StaffSidePanel";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -19,111 +20,217 @@ import {
   CheckCircle2,
   ListFilter,
 } from "lucide-react";
-
-const mockIssues: Issue[] = [
-  { id: "ISS-1045", title: "Blocked Drain - Oak Avenue", category: "Drainage", status: "Open", dateReported: "24 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1044", title: "Streetlight Out - Elm Road", category: "Lighting", status: "In Progress", dateReported: "23 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1043", title: "Abandoned Vehicle - Park Lane", category: "Vehicles", status: "Open", dateReported: "23 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1042", title: "Pothole - Main Street", category: "Roads", status: "Open", dateReported: "22 Mar 2026", lastUpdated: "22 Mar 2026" },
-  { id: "ISS-1041", title: "Fly Tipping - Industrial Estate", category: "Waste", status: "In Progress", dateReported: "21 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1040", title: "Damaged Bench - Central Park", category: "Parks", status: "In Progress", dateReported: "20 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1039", title: "Graffiti - Library Wall", category: "Vandalism", status: "Open", dateReported: "20 Mar 2026", lastUpdated: "22 Mar 2026" },
-  { id: "ISS-1038", title: "Noise Complaint - High Street", category: "Noise", status: "Resolved", dateReported: "19 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1037", title: "Overflowing Bin - Station Rd", category: "Waste", status: "Resolved", dateReported: "18 Mar 2026", lastUpdated: "21 Mar 2026" },
-  { id: "ISS-1036", title: "Cracked Pavement - School Lane", category: "Roads", status: "Closed", dateReported: "17 Mar 2026", lastUpdated: "20 Mar 2026" },
-];
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
+import type { IssueStatus } from "@/types/domain";
+import { formatIssueStatus } from "@/lib/issueMeta";
+import type { ApiStaffIssue } from "@/lib/staffIssues";
+import {
+  mapApiIssueToTableIssue,
+  STAFF_DASHBOARD_STATUS_OPTIONS,
+} from "@/lib/staffIssues";
 
 const StaffDashboard = () => {
+  const { user, loading: authLoading } = useAuth();
+
+  const [issues, setIssues] = useState<ApiStaffIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        if (!user) {
+          setIssues([]);
+          return;
+        }
+
+        const token = await user.getIdToken();
+
+        const response = await fetch(`${API_BASE_URL}/api/issues`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch issues");
+        }
+
+        setIssues(Array.isArray(data.issues) ? data.issues : []);
+      } catch (err: any) {
+        setError(err.message || "Unable to load issues.");
+        setIssues([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchIssues();
+    }
+  }, [user, authLoading]);
+
+  const categories = useMemo(() => {
+    const values = Array.from(
+      new Set(
+        issues
+          .map((issue) => issue.category?.name)
+          .filter((name): name is string => Boolean(name))
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return values;
+  }, [issues]);
+
+  const filteredIssues = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return issues.filter((issue) => {
+      const matchesStatus =
+        statusFilter === "all" || issue.status === statusFilter;
+
+      const matchesCategory =
+        categoryFilter === "all" ||
+        (issue.category?.name || "Uncategorised") === categoryFilter;
+
+      const matchesSearch =
+        !normalizedQuery ||
+        issue.caseId.toLowerCase().includes(normalizedQuery) ||
+        issue.title.toLowerCase().includes(normalizedQuery) ||
+        (issue.description || "").toLowerCase().includes(normalizedQuery) ||
+        (issue.category?.name || "").toLowerCase().includes(normalizedQuery);
+
+      return matchesStatus && matchesCategory && matchesSearch;
+    });
+  }, [issues, statusFilter, categoryFilter, searchQuery]);
+
+  const tableIssues = useMemo(() => {
+    return filteredIssues.map(mapApiIssueToTableIssue);
+  }, [filteredIssues]);
+
+  const stats = useMemo(() => {
+    const total = issues.length;
+    const open = issues.filter(
+      (issue) => issue.status === "CREATED" || issue.status === "UNDER_REVIEW"
+    ).length;
+    const inProgress = issues.filter(
+      (issue) => issue.status === "IN_PROGRESS"
+    ).length;
+    const resolved = issues.filter(
+      (issue) => issue.status === "RESOLVED" || issue.status === "CLOSED"
+    ).length;
+
+    return { total, open, inProgress, resolved };
+  }, [issues]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <StaffAppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader pageTitle="Operational Dashboard" />
+          <StaffDashboardHeader
+            pageTitle="Operational Dashboard"
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
 
           <main className="flex-1 p-5 lg:p-6 overflow-auto">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <SummaryCard
+              <StaffSummaryCard
                 title="Total Issues"
-                value={142}
+                value={stats.total}
                 icon={FileText}
-                trend="+12 this week"
-                trendUp
                 accentClass="text-primary bg-primary/10"
+                cardClassName="bg-card"
               />
-              <SummaryCard
+              <StaffSummaryCard
                 title="Open"
-                value={38}
+                value={stats.open}
                 icon={AlertCircle}
-                trend="5 new today"
-                trendUp
-                accentClass="text-blue-600 bg-blue-50"
+                accentClass="text-primary-foreground bg-primary"
+                cardClassName="bg-primary/10"
               />
-              <SummaryCard
+              <StaffSummaryCard
                 title="In Progress"
-                value={24}
+                value={stats.inProgress}
                 icon={Loader2}
-                accentClass="text-amber-600 bg-amber-50"
+                accentClass="text-amber-700 bg-amber-100"
+                cardClassName="bg-warning/20"
               />
-              <SummaryCard
+              <StaffSummaryCard
                 title="Resolved"
-                value={80}
+                value={stats.resolved}
                 icon={CheckCircle2}
-                trend="+8 this week"
-                trendUp
-                accentClass="text-emerald-600 bg-emerald-50"
+                accentClass="text-accent/200 bg-accent/30"
+                cardClassName="bg-accent/20"
               />
             </div>
 
             <div className="flex gap-6">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <ListFilter className="w-4 h-4 text-muted-foreground" />
 
-                    <Select>
-                      <SelectTrigger className="h-8 w-32 text-xs bg-card">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-8 w-40 text-xs bg-card">
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="Open">Open</SelectItem>
-                        <SelectItem value="In Progress">In Progress</SelectItem>
-                        <SelectItem value="Resolved">Resolved</SelectItem>
-                        <SelectItem value="Closed">Closed</SelectItem>
+                        {STAFF_DASHBOARD_STATUS_OPTIONS.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {formatIssueStatus(status)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
-                    <Select>
-                      <SelectTrigger className="h-8 w-36 text-xs bg-card">
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="h-8 w-44 text-xs bg-card">
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="Roads">Roads</SelectItem>
-                        <SelectItem value="Drainage">Drainage</SelectItem>
-                        <SelectItem value="Lighting">Lighting</SelectItem>
-                        <SelectItem value="Waste">Waste</SelectItem>
-                        <SelectItem value="Parks">Parks</SelectItem>
-                        <SelectItem value="Vandalism">Vandalism</SelectItem>
-                        <SelectItem value="Noise">Noise</SelectItem>
-                        <SelectItem value="Vehicles">Vehicles</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {mockIssues.length} issues
-                    </Badge>
-                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {tableIssues.length} issues
+                  </Badge>
                 </div>
 
-                <IssueTable issues={mockIssues} />
+                {error ? (
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive mb-4">
+                    {error}
+                  </div>
+                ) : null}
+
+                <StaffIssueTable
+                  issues={tableIssues}
+                  loading={loading}
+                  emptyMessage="No issues found for the selected filters."
+                />
               </div>
 
               <div className="hidden xl:block w-80 shrink-0">
-                <SidePanel />
+                <StaffSidePanel issues={issues} />
               </div>
             </div>
           </main>

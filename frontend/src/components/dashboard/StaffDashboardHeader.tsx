@@ -19,13 +19,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface DashboardHeaderProps {
+interface StaffDashboardHeaderProps {
   pageTitle?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-const DashboardHeader = ({
+const StaffDashboardHeader = ({
   pageTitle = "Operational Dashboard",
-}: DashboardHeaderProps) => {
+  searchValue = "",
+  onSearchChange,
+}: StaffDashboardHeaderProps) => {
   const navigate = useNavigate();
   const { appUser, logout } = useAuth();
 
@@ -34,7 +38,9 @@ const DashboardHeader = ({
     role: "Operational Staff",
     email: appUser?.email || "staff.user@council.gov.uk",
     department: "Operations",
-    employeeId: appUser?.staffProfile?.id ? `STAFF-${appUser.staffProfile.id}` : "EMP-00421",
+    employeeId: appUser?.staffProfile?.id
+      ? `STAFF-${appUser.staffProfile.id}`
+      : "EMP-00421",
     lastLogin: "Current Session",
   };
 
@@ -56,13 +62,17 @@ const DashboardHeader = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search issue ID, title, or keyword..."
-            className="pl-9 h-9 w-72 text-sm bg-background"
-          />
-        </div>
+        {onSearchChange && (
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search issue ID, title, or keyword..."
+              className="pl-9 h-9 w-72 text-sm bg-background"
+            />
+          </div>
+        )}
 
         <div className="pl-2 border-l border-border">
           <DropdownMenu>
@@ -103,21 +113,9 @@ const DashboardHeader = ({
 
               <div className="p-3 space-y-2.5">
                 <ProfileRow icon={Mail} label="Email" value={staffProfile.email} />
-                <ProfileRow
-                  icon={Building2}
-                  label="Department"
-                  value={staffProfile.department}
-                />
-                <ProfileRow
-                  icon={BadgeCheck}
-                  label="Employee ID"
-                  value={staffProfile.employeeId}
-                />
-                <ProfileRow
-                  icon={Clock}
-                  label="Last Login"
-                  value={staffProfile.lastLogin}
-                />
+                <ProfileRow icon={Building2} label="Department" value={staffProfile.department} />
+                <ProfileRow icon={BadgeCheck} label="Employee ID" value={staffProfile.employeeId} />
+                <ProfileRow icon={Clock} label="Last Login" value={staffProfile.lastLogin} />
               </div>
 
               <DropdownMenuSeparator />
@@ -165,4 +163,4 @@ const ProfileRow = ({
   </div>
 );
 
-export default DashboardHeader;
+export default StaffDashboardHeader;

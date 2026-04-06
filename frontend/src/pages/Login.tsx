@@ -69,7 +69,7 @@ const LoginPage = () => {
         throw new Error(data.message || "Failed to sync user");
       }
 
-      if (data.user?.role === "STAFF") {
+      if (data.user?.role === "STAFF" || data.user?.role === "ADMIN") {
         navigate("/staff/dashboard");
       } else {
         navigate("/dashboard");

@@ -20,8 +20,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (appUser?.role === "STAFF") {
-    return <Navigate to="/staff/dashboard" replace />;
+  if (appUser?.role === "STAFF" || appUser?.role === "ADMIN") {
+  return <Navigate to="/staff/dashboard" replace />;
   }
 
   return <>{children}</>;

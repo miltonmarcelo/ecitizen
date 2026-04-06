@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import StaffRoute from "@/components/StaffRoute";
+import AdminRoute from "@/components/AdminRoute";
 
 import Index from "./pages/Index";
 import LoginPage from "./pages/Login";
@@ -194,6 +195,21 @@ const App = () => (
             />
 
             <Route path="/contact" element={<ContactPage />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <div className="min-h-screen flex items-center justify-center bg-background">
+                    <div className="rounded-lg border bg-card p-6">
+                      <h1 className="text-lg font-semibold">Admin Panel</h1>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Admin area coming next.
+                      </p>
+                    </div>
+                  </div>
+                </AdminRoute>
+              }
+            />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

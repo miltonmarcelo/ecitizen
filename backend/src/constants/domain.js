@@ -1,6 +1,7 @@
 const ROLES = {
   CITIZEN: "CITIZEN",
   STAFF: "STAFF",
+  ADMIN: "ADMIN",
 };
 
 const ISSUE_STATUS = {

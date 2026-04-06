@@ -22,6 +22,9 @@ async function auth(req, res, next) {
             ...(decoded.email ? [{ email: decoded.email }] : []),
           ],
         },
+        include: {
+          staffProfile: true,
+        },
       });
     }
 

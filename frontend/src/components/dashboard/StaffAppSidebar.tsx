@@ -5,6 +5,7 @@ import {
   Inbox,
   LogOut,
   Shield,
+  Settings,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -33,11 +34,11 @@ const mainNav = [
   { title: "Unassigned Issues", url: "/staff/unassigned", icon: Inbox },
 ];
 
-export function AppSidebar() {
+export function StaffAppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, appUser } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -89,6 +90,21 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {appUser?.role === "ADMIN" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={collapsed ? "Admin Panel" : undefined}>
+                    <NavLink
+                      to="/admin"
+                      end
+                      className="hover:bg-muted/60 rounded-md"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <Settings className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>Admin Panel</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

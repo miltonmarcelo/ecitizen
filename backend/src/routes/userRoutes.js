@@ -5,6 +5,18 @@ const auth = require("../middleware/auth");
 const admin = require("../config/firebaseAdmin");
 const { ROLES } = require("../constants/domain");
 
+function isStaff(user) {
+  return user && user.role === ROLES.STAFF;
+}
+
+function isAdmin(user) {
+  return user && user.role === ROLES.ADMIN;
+}
+
+function isStaffOrAdmin(user) {
+  return isStaff(user) || isAdmin(user);
+}
+
 router.post("/sync", auth, async (req, res) => {
   try {
     const { fullName } = req.body;
@@ -91,6 +103,50 @@ router.get("/me", auth, async (req, res) => {
     console.error("Get current user error:", error);
     return res.status(500).json({
       message: "Failed to load current user",
+      details: error.message,
+    });
+  }
+});
+
+router.get("/staff-members", auth, async (req, res) => {
+  try {
+    if (!isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Only staff can view staff members" });
+    }
+
+    const staffMembers = await prisma.staff.findMany({
+      where: {
+        user: {
+          isActive: true,
+          role: {
+            in: [ROLES.STAFF, ROLES.ADMIN],
+          },
+        },
+      },
+      orderBy: {
+        user: {
+          fullName: "asc",
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      staffMembers,
+    });
+  } catch (error) {
+    console.error("Get staff members error:", error);
+    return res.status(500).json({
+      message: "Failed to fetch staff members",
       details: error.message,
     });
   }

@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   CITIZEN
   STAFF
+  ADMIN
 }
 
 enum IssueStatus {

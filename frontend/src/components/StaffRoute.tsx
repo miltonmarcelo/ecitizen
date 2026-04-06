@@ -22,9 +22,9 @@ const StaffRoute = ({ children }: StaffRouteProps) => {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (!appUser || appUser.role !== "STAFF") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!appUser || (appUser.role !== "STAFF" && appUser.role !== "ADMIN")) {
+  return <Navigate to="/dashboard" replace />;
+}
 
   return <>{children}</>;
 };

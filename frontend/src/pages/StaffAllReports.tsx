@@ -1,10 +1,17 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import IssueTable, { Issue } from "@/components/dashboard/IssueTable";
+import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
+import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
+import StaffIssueTable from "@/components/dashboard/StaffIssueTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -12,98 +19,213 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ListFilter, X } from "lucide-react";
-
-const statusOptions = ["Open", "In Progress", "Resolved", "Closed"];
-
-const categoryOptions = [
-  "Roads",
-  "Drainage",
-  "Lighting",
-  "Waste",
-  "Parks",
-  "Vandalism",
-  "Noise",
-  "Vehicles",
-];
-
-const mockIssues: Issue[] = [
-  { id: "ISS-1045", title: "Blocked Drain - Oak Avenue", category: "Drainage", status: "Open", dateReported: "24 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1044", title: "Streetlight Out - Elm Road", category: "Lighting", status: "In Progress", dateReported: "23 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1043", title: "Abandoned Vehicle - Park Lane", category: "Vehicles", status: "Open", dateReported: "23 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1042", title: "Pothole - Main Street", category: "Roads", status: "Open", dateReported: "22 Mar 2026", lastUpdated: "22 Mar 2026" },
-  { id: "ISS-1041", title: "Fly Tipping - Industrial Estate", category: "Waste", status: "In Progress", dateReported: "21 Mar 2026", lastUpdated: "24 Mar 2026" },
-  { id: "ISS-1040", title: "Damaged Bench - Central Park", category: "Parks", status: "In Progress", dateReported: "20 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1039", title: "Graffiti - Library Wall", category: "Vandalism", status: "Open", dateReported: "20 Mar 2026", lastUpdated: "22 Mar 2026" },
-  { id: "ISS-1038", title: "Noise Complaint - High Street", category: "Noise", status: "Resolved", dateReported: "19 Mar 2026", lastUpdated: "23 Mar 2026" },
-  { id: "ISS-1037", title: "Overflowing Bin - Station Rd", category: "Waste", status: "Resolved", dateReported: "18 Mar 2026", lastUpdated: "21 Mar 2026" },
-  { id: "ISS-1036", title: "Cracked Pavement - School Lane", category: "Roads", status: "Closed", dateReported: "17 Mar 2026", lastUpdated: "20 Mar 2026" },
-  { id: "ISS-1035", title: "Broken Fence - Riverside Walk", category: "Parks", status: "Open", dateReported: "16 Mar 2026", lastUpdated: "18 Mar 2026" },
-  { id: "ISS-1034", title: "Leaking Hydrant - Bridge St", category: "Drainage", status: "In Progress", dateReported: "15 Mar 2026", lastUpdated: "20 Mar 2026" },
-  { id: "ISS-1033", title: "Illegal Dumping - Canal Path", category: "Waste", status: "Open", dateReported: "14 Mar 2026", lastUpdated: "16 Mar 2026" },
-  { id: "ISS-1032", title: "Faded Road Markings - A12 Junction", category: "Roads", status: "Resolved", dateReported: "13 Mar 2026", lastUpdated: "19 Mar 2026" },
-  { id: "ISS-1031", title: "Broken Swing - Jubilee Playground", category: "Parks", status: "Closed", dateReported: "12 Mar 2026", lastUpdated: "17 Mar 2026" },
-  { id: "ISS-1030", title: "Blocked Footpath - Manor Lane", category: "Roads", status: "Open", dateReported: "11 Mar 2026", lastUpdated: "14 Mar 2026" },
-  { id: "ISS-1029", title: "Vandalised Bus Stop - King St", category: "Vandalism", status: "In Progress", dateReported: "10 Mar 2026", lastUpdated: "15 Mar 2026" },
-  { id: "ISS-1028", title: "Damaged Street Sign - Church Rd", category: "Roads", status: "Resolved", dateReported: "09 Mar 2026", lastUpdated: "14 Mar 2026" },
-  { id: "ISS-1027", title: "Overgrown Hedge - School Lane", category: "Parks", status: "Closed", dateReported: "08 Mar 2026", lastUpdated: "12 Mar 2026" },
-  { id: "ISS-1026", title: "Flickering Streetlight - West Ave", category: "Lighting", status: "Open", dateReported: "07 Mar 2026", lastUpdated: "10 Mar 2026" },
-];
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
+import type { IssueStatus } from "@/types/domain";
+import { formatIssueStatus } from "@/lib/issueMeta";
+import type { ApiCategory, ApiStaffIssue } from "@/lib/staffIssues";
+import {
+  mapApiIssueToTableIssue,
+  STAFF_DASHBOARD_STATUS_OPTIONS,
+} from "@/lib/staffIssues";
 
 const StaffAllReports = () => {
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
+
+  const [issues, setIssues] = useState<ApiStaffIssue[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [statusFilters, setStatusFilters] = useState<IssueStatus[]>([]);
   const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [assignmentFilter, setAssignmentFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (location.pathname === "/staff/my-issues") {
+      setAssignmentFilter("mine");
+      return;
+    }
+
+    if (location.pathname === "/staff/unassigned") {
+      setAssignmentFilter("unassigned");
+      return;
+    }
+
+    setAssignmentFilter("all");
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        if (!user) {
+          setIssues([]);
+          setCategories([]);
+          return;
+        }
+
+        const token = await user.getIdToken();
+
+        const params = new URLSearchParams();
+
+        if (statusFilters.length === 1) {
+          params.set("status", statusFilters[0]);
+        }
+
+        if (categoryFilters.length === 1) {
+          params.set("category", categoryFilters[0]);
+        }
+
+        if (assignmentFilter !== "all") {
+          params.set("assignment", assignmentFilter);
+        }
+
+        const issuesUrl = `${API_BASE_URL}/api/issues${
+          params.toString() ? `?${params.toString()}` : ""
+        }`;
+
+        const [issuesResponse, categoriesResponse] = await Promise.all([
+          fetch(issuesUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${API_BASE_URL}/api/categories`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ]);
+
+        const issuesData = await issuesResponse.json();
+        const categoriesData = await categoriesResponse.json();
+
+        if (!issuesResponse.ok) {
+          throw new Error(issuesData.message || "Failed to fetch issues");
+        }
+
+        if (!categoriesResponse.ok) {
+          throw new Error(categoriesData.message || "Failed to fetch categories");
+        }
+
+        let nextIssues: ApiStaffIssue[] = Array.isArray(issuesData.issues)
+          ? issuesData.issues
+          : [];
+
+        if (statusFilters.length > 1) {
+          nextIssues = nextIssues.filter((issue) =>
+            statusFilters.includes(issue.status)
+          );
+        }
+
+        if (categoryFilters.length > 1) {
+          nextIssues = nextIssues.filter((issue) =>
+            categoryFilters.includes(issue.category?.name || "Uncategorised")
+          );
+        }
+
+        setIssues(nextIssues);
+        setCategories(Array.isArray(categoriesData.categories) ? categoriesData.categories : []);
+      } catch (err: any) {
+        setError(err.message || "Unable to load issues.");
+        setIssues([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [user, authLoading, statusFilters, categoryFilters, assignmentFilter]);
 
   const hasFilters =
     statusFilters.length > 0 ||
     categoryFilters.length > 0 ||
-    assignmentFilter !== "all";
+    assignmentFilter !== "all" ||
+    searchQuery.trim() !== "";
 
   const clearFilters = () => {
     setStatusFilters([]);
     setCategoryFilters([]);
+    setSearchQuery("");
+    if (location.pathname === "/staff/my-issues") {
+      setAssignmentFilter("mine");
+      return;
+    }
+
+    if (location.pathname === "/staff/unassigned") {
+      setAssignmentFilter("unassigned");
+      return;
+    }
+
     setAssignmentFilter("all");
   };
 
-  const toggleFilter = (
-    current: string[],
-    value: string,
-    setter: (v: string[]) => void
-  ) => {
-    setter(
+  const toggleStatusFilter = (value: IssueStatus) => {
+    setStatusFilters((current) =>
       current.includes(value)
-        ? current.filter((v) => v !== value)
+        ? current.filter((item) => item !== value)
         : [...current, value]
     );
   };
 
-  const filtered = useMemo(() => {
-    return mockIssues.filter((issue) => {
-      if (statusFilters.length > 0 && !statusFilters.includes(issue.status)) {
-        return false;
-      }
+  const toggleCategoryFilter = (value: string) => {
+    setCategoryFilters((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  };
 
-      if (categoryFilters.length > 0 && !categoryFilters.includes(issue.category)) {
-        return false;
-      }
+  const tableIssues = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-      return true;
+    const filteredBySearch = issues.filter((issue) => {
+      if (!normalizedQuery) return true;
+
+      return (
+        issue.caseId.toLowerCase().includes(normalizedQuery) ||
+        issue.title.toLowerCase().includes(normalizedQuery) ||
+        (issue.description || "").toLowerCase().includes(normalizedQuery) ||
+        (issue.category?.name || "").toLowerCase().includes(normalizedQuery)
+      );
     });
-  }, [statusFilters, categoryFilters]);
+
+    return filteredBySearch.map(mapApiIssueToTableIssue);
+  }, [issues, searchQuery]);
+
+  const pageTitle = useMemo(() => {
+    if (location.pathname === "/staff/my-issues") {
+      return "Issues Assigned to Me";
+    }
+
+    if (location.pathname === "/staff/unassigned") {
+      return "Unassigned Issues";
+    }
+
+    return "All Issues";
+  }, [location.pathname]);
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <StaffAppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader pageTitle="All Issues" />
+          <StaffDashboardHeader
+            pageTitle={pageTitle}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
 
           <main className="flex-1 p-5 lg:p-6 overflow-auto">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -122,17 +244,15 @@ const StaffAllReports = () => {
                         : `Status (${statusFilters.length})`}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-44">
-                    {statusOptions.map((status) => (
+                  <DropdownMenuContent align="start" className="w-52">
+                    {STAFF_DASHBOARD_STATUS_OPTIONS.map((status) => (
                       <DropdownMenuCheckboxItem
                         key={status}
                         checked={statusFilters.includes(status)}
-                        onCheckedChange={() =>
-                          toggleFilter(statusFilters, status, setStatusFilters)
-                        }
-                        onSelect={(e) => e.preventDefault()}
+                        onCheckedChange={() => toggleStatusFilter(status)}
+                        onSelect={(event) => event.preventDefault()}
                       >
-                        {status}
+                        {formatIssueStatus(status)}
                       </DropdownMenuCheckboxItem>
                     ))}
                   </DropdownMenuContent>
@@ -150,17 +270,15 @@ const StaffAllReports = () => {
                         : `Categories (${categoryFilters.length})`}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-44">
-                    {categoryOptions.map((category) => (
+                  <DropdownMenuContent align="start" className="w-52">
+                    {categories.map((category) => (
                       <DropdownMenuCheckboxItem
-                        key={category}
-                        checked={categoryFilters.includes(category)}
-                        onCheckedChange={() =>
-                          toggleFilter(categoryFilters, category, setCategoryFilters)
-                        }
-                        onSelect={(e) => e.preventDefault()}
+                        key={category.id}
+                        checked={categoryFilters.includes(category.name)}
+                        onCheckedChange={() => toggleCategoryFilter(category.name)}
+                        onSelect={(event) => event.preventDefault()}
                       >
-                        {category}
+                        {category.name}
                       </DropdownMenuCheckboxItem>
                     ))}
                   </DropdownMenuContent>
@@ -191,11 +309,21 @@ const StaffAllReports = () => {
               </div>
 
               <Badge variant="secondary" className="text-xs">
-                Showing {filtered.length} issues
+                Showing {tableIssues.length} issues
               </Badge>
             </div>
 
-            <IssueTable issues={filtered} />
+            {error ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive mb-4">
+                {error}
+              </div>
+            ) : null}
+
+            <StaffIssueTable
+              issues={tableIssues}
+              loading={loading}
+              emptyMessage="No issues found for the selected filters."
+            />
           </main>
         </div>
       </div>

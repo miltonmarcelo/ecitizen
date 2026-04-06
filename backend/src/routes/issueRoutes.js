@@ -36,6 +36,38 @@ function isStaff(user) {
   return user && user.role === ROLES.STAFF;
 }
 
+function isAdmin(user) {
+  return user && user.role === ROLES.ADMIN;
+}
+
+function isStaffOrAdmin(user) {
+  return isStaff(user) || isAdmin(user);
+}
+
+function getStatusChangeComment(fromStatus, toStatus) {
+  return `Status changed from ${fromStatus} to ${toStatus}`;
+}
+
+function getCategoryChangeComment(fromCategoryName, toCategoryName) {
+  const previousLabel = fromCategoryName || "Uncategorised";
+  const nextLabel = toCategoryName || "Uncategorised";
+  return `Category changed from ${previousLabel} to ${nextLabel}`;
+}
+
+function getAssignmentComment(previousAssigneeName, nextAssigneeName) {
+  if (!nextAssigneeName) {
+    return previousAssigneeName
+      ? `Issue unassigned from ${previousAssigneeName}`
+      : "Issue unassigned";
+  }
+
+  if (!previousAssigneeName) {
+    return `Issue assigned to ${nextAssigneeName}`;
+  }
+
+  return `Issue reassigned from ${previousAssigneeName} to ${nextAssigneeName}`;
+}
+
 router.post("/", auth, async (req, res) => {
   try {
     if (!isCitizen(req.user)) {
@@ -55,9 +87,9 @@ router.post("/", auth, async (req, res) => {
       latitude,
       longitude,
     } = req.body;
+
     const resolvedCity = city?.trim() || "Dublin";
     const resolvedCounty = county?.trim() || "Dublin";
-
     const parsedCategoryId = Number(categoryId);
 
     if (
@@ -192,13 +224,19 @@ router.get("/my", auth, async (req, res) => {
 
 router.get("/", auth, async (req, res) => {
   try {
-    if (!isStaff(req.user)) {
+    if (!isStaffOrAdmin(req.user)) {
       return res.status(403).json({ message: "Only staff can view all issues" });
     }
 
-    const { search, status, category, sort } = req.query;
+    const { search, status, category, sort, assignment } = req.query;
+
     const normalizedStatus =
       status && ALL_ISSUE_STATUSES.includes(String(status)) ? String(status) : undefined;
+
+    const normalizedAssignment =
+      assignment && ["all", "mine", "unassigned"].includes(String(assignment))
+        ? String(assignment)
+        : "all";
 
     const where = {
       ...(normalizedStatus ? { status: normalizedStatus } : {}),
@@ -226,7 +264,29 @@ router.get("/", auth, async (req, res) => {
         : {}),
     };
 
-    const orderBy = sort === "oldest" ? { createdAt: "asc" } : { createdAt: "desc" };
+    if (normalizedAssignment === "mine") {
+      if (!req.user?.staffProfile?.id) {
+        return res.status(400).json({
+          message: "Current user does not have a staff profile",
+        });
+      }
+
+      where.staffId = req.user.staffProfile.id;
+    }
+
+    if (normalizedAssignment === "unassigned") {
+      where.staffId = null;
+    }
+
+    let orderBy = { createdAt: "desc" };
+
+    if (sort === "oldest") {
+      orderBy = { createdAt: "asc" };
+    }
+
+    if (sort === "updated") {
+      orderBy = { updatedAt: "desc" };
+    }
 
     const issues = await prisma.issue.findMany({
       where,
@@ -238,6 +298,19 @@ router.get("/", auth, async (req, res) => {
             id: true,
             fullName: true,
             email: true,
+          },
+        },
+        staff: {
+          select: {
+            id: true,
+            jobTitle: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
           },
         },
       },
@@ -268,6 +341,19 @@ router.get("/:caseId", auth, async (req, res) => {
             id: true,
             fullName: true,
             email: true,
+          },
+        },
+        staff: {
+          select: {
+            id: true,
+            jobTitle: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
           },
         },
         notes: {
@@ -315,6 +401,10 @@ router.get("/:caseId", auth, async (req, res) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    if (!isCitizen(req.user) && !isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     return res.status(200).json({
       issue,
     });
@@ -329,23 +419,14 @@ router.get("/:caseId", auth, async (req, res) => {
 
 router.patch("/:caseId/status", auth, async (req, res) => {
   try {
-    if (!isStaff(req.user)) {
+    if (!isStaffOrAdmin(req.user)) {
       return res.status(403).json({ message: "Only staff can update issue status" });
     }
 
     const { caseId } = req.params;
     const { status } = req.body;
 
-    const allowedStatuses = [
-      "CREATED",
-      "UNDER_REVIEW",
-      "IN_PROGRESS",
-      "RESOLVED",
-      "CLOSED",
-      "CANCELLED",
-    ];
-
-    if (!status || !allowedStatuses.includes(status)) {
+    if (!status || !ALL_ISSUE_STATUSES.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
@@ -379,11 +460,11 @@ router.patch("/:caseId/status", auth, async (req, res) => {
       await tx.issueHistory.create({
         data: {
           issueId: existingIssue.id,
-          eventType: "STATUS_CHANGED",
+          eventType: ISSUE_EVENT_TYPE.STATUS_CHANGED,
           fromStatus: existingIssue.status,
           toStatus: status,
           changedByUserId: req.user.id,
-          comment: `Status changed from ${existingIssue.status} to ${status}`,
+          comment: getStatusChangeComment(existingIssue.status, status),
         },
       });
 
@@ -398,6 +479,270 @@ router.patch("/:caseId/status", auth, async (req, res) => {
     console.error("Update issue status error:", error);
     return res.status(500).json({
       message: "Failed to update issue status",
+      details: error.message,
+    });
+  }
+});
+
+router.patch("/:caseId/category", auth, async (req, res) => {
+  try {
+    if (!isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Only staff can update issue category" });
+    }
+
+    const { caseId } = req.params;
+    const parsedCategoryId = Number(req.body.categoryId);
+
+    if (!parsedCategoryId) {
+      return res.status(400).json({ message: "A valid category is required" });
+    }
+
+    const [existingIssue, nextCategory] = await Promise.all([
+      prisma.issue.findUnique({
+        where: { caseId },
+        include: {
+          category: true,
+        },
+      }),
+      prisma.category.findUnique({
+        where: { id: parsedCategoryId },
+      }),
+    ]);
+
+    if (!existingIssue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    if (!nextCategory || !nextCategory.isActive) {
+      return res.status(400).json({ message: "Invalid category selected" });
+    }
+
+    if (existingIssue.categoryId === parsedCategoryId) {
+      return res.status(200).json({
+        message: "Issue category unchanged",
+        issue: existingIssue,
+      });
+    }
+
+    const issue = await prisma.$transaction(async (tx) => {
+      const updatedIssue = await tx.issue.update({
+        where: { caseId },
+        data: {
+          categoryId: parsedCategoryId,
+        },
+        include: {
+          category: true,
+        },
+      });
+
+      await tx.issueHistory.create({
+        data: {
+          issueId: existingIssue.id,
+          eventType: ISSUE_EVENT_TYPE.NOTE_ADDED,
+          changedByUserId: req.user.id,
+          comment: getCategoryChangeComment(existingIssue.category?.name, nextCategory.name),
+        },
+      });
+
+      return updatedIssue;
+    });
+
+    return res.status(200).json({
+      message: "Issue category updated successfully",
+      issue,
+    });
+  } catch (error) {
+    console.error("Update issue category error:", error);
+    return res.status(500).json({
+      message: "Failed to update issue category",
+      details: error.message,
+    });
+  }
+});
+
+router.post("/:caseId/notes", auth, async (req, res) => {
+  try {
+    if (!isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Only staff can add notes" });
+    }
+
+    if (!req.user?.staffProfile?.id) {
+      return res.status(400).json({ message: "Current user does not have a staff profile" });
+    }
+
+    const { caseId } = req.params;
+    const content = String(req.body.content || "").trim();
+
+    if (!content) {
+      return res.status(400).json({ message: "Note content is required" });
+    }
+
+    const existingIssue = await prisma.issue.findUnique({
+      where: { caseId },
+    });
+
+    if (!existingIssue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.note.create({
+        data: {
+          content,
+          issueId: existingIssue.id,
+          staffId: req.user.staffProfile.id,
+        },
+      });
+
+      await tx.issue.update({
+        where: { id: existingIssue.id },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.issueHistory.create({
+        data: {
+          issueId: existingIssue.id,
+          eventType: ISSUE_EVENT_TYPE.NOTE_ADDED,
+          changedByUserId: req.user.id,
+          comment: `Staff note added: ${content}`,
+        },
+      });
+    });
+
+    const issue = await prisma.issue.findUnique({
+      where: { caseId },
+      include: {
+        category: true,
+      },
+    });
+
+    return res.status(201).json({
+      message: "Staff note saved successfully",
+      issue,
+    });
+  } catch (error) {
+    console.error("Add issue note error:", error);
+    return res.status(500).json({
+      message: "Failed to save staff note",
+      details: error.message,
+    });
+  }
+});
+
+router.patch("/:caseId/assignment", auth, async (req, res) => {
+  try {
+    if (!isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Only staff can assign issues" });
+    }
+
+    const { caseId } = req.params;
+    const rawStaffId = req.body.staffId;
+    const nextStaffId = rawStaffId === null ? null : Number(rawStaffId);
+
+    if (rawStaffId !== null && !nextStaffId) {
+      return res.status(400).json({ message: "A valid staff member is required" });
+    }
+
+    const existingIssue = await prisma.issue.findUnique({
+      where: { caseId },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!existingIssue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    let nextStaff = null;
+
+    if (nextStaffId) {
+      nextStaff = await prisma.staff.findUnique({
+        where: { id: nextStaffId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              role: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+
+      if (!nextStaff || !nextStaff.user?.isActive) {
+        return res.status(400).json({ message: "Selected staff member is not available" });
+      }
+    }
+
+    if ((existingIssue.staff?.id || null) === (nextStaff?.id || null)) {
+      return res.status(200).json({
+        message: "Issue assignment unchanged",
+        issue: existingIssue,
+      });
+    }
+
+    const eventType = nextStaff ? ISSUE_EVENT_TYPE.ASSIGNED : ISSUE_EVENT_TYPE.UNASSIGNED;
+    const previousAssigneeName = existingIssue.staff?.user?.fullName || null;
+    const nextAssigneeName = nextStaff?.user?.fullName || null;
+
+    const issue = await prisma.$transaction(async (tx) => {
+      const updatedIssue = await tx.issue.update({
+        where: { caseId },
+        data: {
+          staffId: nextStaff?.id || null,
+        },
+        include: {
+          category: true,
+          staff: {
+            select: {
+              id: true,
+              jobTitle: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      await tx.issueHistory.create({
+        data: {
+          issueId: existingIssue.id,
+          eventType,
+          changedByUserId: req.user.id,
+          comment: getAssignmentComment(previousAssigneeName, nextAssigneeName),
+        },
+      });
+
+      return updatedIssue;
+    });
+
+    return res.status(200).json({
+      message: nextStaff ? "Issue assigned successfully" : "Issue unassigned successfully",
+      issue,
+    });
+  } catch (error) {
+    console.error("Update issue assignment error:", error);
+    return res.status(500).json({
+      message: "Failed to update assignment",
       details: error.message,
     });
   }

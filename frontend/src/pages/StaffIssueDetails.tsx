@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
+import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,183 +21,414 @@ import {
   Clock,
   User,
   Mail,
-  Phone,
   FileText,
   MessageSquare,
   CheckCircle2,
   AlertCircle,
-  ImageIcon,
-  UserPlus,
+  Loader2,
+  UserRoundCheck,
+  Tag,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
+import type { IssueStatus } from "@/types/domain";
+import { ALL_ISSUE_STATUSES, formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
+import {
+  buildIssueLocation,
+  calculateDaysOpen,
+  formatShortDate,
+  formatShortDateTime,
+  getStaffDisplayName,
+  type ApiAssignableStaffMember,
+  type ApiCategory,
+  type ApiStaffSummary,
+  type ApiCitizenSummary,
+} from "@/lib/staffIssues";
 
-const issuesData: Record<string, any> = {
-  "ISS-1045": {
-    id: "ISS-1045",
-    title: "Blocked Drain - Oak Avenue",
-    category: "Drainage",
-    status: "Open",
-    dateReported: "24 Mar 2026",
-    lastUpdated: "24 Mar 2026",
-    description:
-      "There is a large blockage in the storm drain on the corner of Oak Avenue and Birch Street. Water is pooling across the footpath and part of the road during rain. This is causing a hazard for pedestrians and vehicles. The drain cover appears to be partially displaced.",
-    location: "Corner of Oak Avenue and Birch Street, near the primary school",
-    reporter: {
-      name: "Margaret Thompson",
-      email: "m.thompson@email.com",
-      phone: "07700 900123",
-    },
-    timeline: [
-      { event: "Issue submitted by citizen", date: "24 Mar 2026, 09:14", type: "created" },
-    ],
-    notes: [],
-  },
-  "ISS-1044": {
-    id: "ISS-1044",
-    title: "Streetlight Out - Elm Road",
-    category: "Lighting",
-    status: "In Progress",
-    dateReported: "23 Mar 2026",
-    lastUpdated: "24 Mar 2026",
-    description:
-      "The streetlight outside number 42 Elm Road has not been working for over a week. The area is very dark at night and residents feel unsafe walking to the bus stop.",
-    location: "42 Elm Road, near the bus stop",
-    reporter: {
-      name: "David Chen",
-      email: "d.chen@email.com",
-      phone: "07700 900456",
-    },
-    timeline: [
-      { event: "Issue submitted by citizen", date: "23 Mar 2026, 14:32", type: "created" },
-      { event: "Status changed to In Progress", date: "24 Mar 2026, 10:05", type: "status" },
-      { event: "Staff note added by J. Martinez", date: "24 Mar 2026, 10:06", type: "note" },
-    ],
-    notes: [
-      {
-        author: "J. Martinez",
-        date: "24 Mar 2026, 10:06",
-        text: "Assigned to field team for inspection. Electrical contractor notified.",
-      },
-    ],
-  },
+type IssueNote = {
+  id: number;
+  content: string;
+  createdAt: string;
+  staff?: ApiStaffSummary;
 };
 
-const statusVariant: Record<string, string> = {
-  Open: "bg-blue-50 text-blue-700 border-blue-200",
-  "In Progress": "bg-amber-50 text-amber-700 border-amber-200",
-  Resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Closed: "bg-muted text-muted-foreground border-border",
+type IssueHistory = {
+  id: number;
+  eventType: string;
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  comment?: string | null;
+  changedAt: string;
+  changedByUser?: {
+    id: number;
+    fullName?: string | null;
+    email?: string | null;
+    role?: string | null;
+  } | null;
 };
 
-const timelineIcon: Record<string, any> = {
-  created: AlertCircle,
-  status: CheckCircle2,
-  note: MessageSquare,
+type StaffIssueDetailsData = {
+  id: number;
+  caseId: string;
+  title: string;
+  description: string;
+  categoryId: number | null;
+  category: ApiCategory | null;
+  status: IssueStatus;
+  addressLine1: string;
+  addressLine2?: string | null;
+  suburb?: string | null;
+  area?: string | null;
+  city: string;
+  county: string;
+  createdAt: string;
+  updatedAt: string;
+  citizen?: ApiCitizenSummary;
+  staff?: ApiStaffSummary;
+  notes: IssueNote[];
+  history: IssueHistory[];
 };
 
-const timelineColor: Record<string, string> = {
-  created: "text-blue-600 bg-blue-50",
-  status: "text-amber-600 bg-amber-50",
-  note: "text-primary bg-primary/10",
+const timelineIconMap: Record<string, any> = {
+  CREATED: AlertCircle,
+  STATUS_CHANGED: CheckCircle2,
+  NOTE_ADDED: MessageSquare,
+  INFO_REQUESTED: MessageSquare,
+  INFO_RECEIVED: MessageSquare,
+  ASSIGNED: UserRoundCheck,
+  UNASSIGNED: UserRoundCheck,
+  REOPENED: AlertCircle,
 };
+
+const timelineColorMap: Record<string, string> = {
+  CREATED: "text-blue-600 bg-blue-50",
+  STATUS_CHANGED: "text-amber-600 bg-amber-50",
+  NOTE_ADDED: "text-primary bg-primary/10",
+  INFO_REQUESTED: "text-primary bg-primary/10",
+  INFO_RECEIVED: "text-primary bg-primary/10",
+  ASSIGNED: "text-emerald-600 bg-emerald-50",
+  UNASSIGNED: "text-slate-600 bg-slate-50",
+  REOPENED: "text-blue-600 bg-blue-50",
+};
+
+function getTimelineTitle(item: IssueHistory): string {
+  if (item.comment?.trim()) {
+    return item.comment;
+  }
+
+  if (item.eventType === "STATUS_CHANGED" && item.toStatus) {
+    return `Status changed to ${formatIssueStatus(item.toStatus)}`;
+  }
+
+  if (item.eventType === "CREATED") {
+    return "Issue created";
+  }
+
+  return item.eventType.replace(/_/g, " ");
+}
 
 const StaffIssueDetails = () => {
-  const { issueId } = useParams();
+  const { issueId } = useParams<{ issueId: string }>();
   const navigate = useNavigate();
-  const issue = issuesData[issueId || ""];
+  const { user, appUser, loading: authLoading } = useAuth();
 
-  const [currentStatus, setCurrentStatus] = useState(issue?.status || "Open");
-  const [noteText, setNoteText] = useState("");
-  const [notes, setNotes] = useState(issue?.notes || []);
-  const [timeline, setTimeline] = useState(issue?.timeline || []);
-  const [assignedTo, setAssignedTo] = useState<string | null>(issue?.assignedTo || null);
-  const [infoRequestText, setInfoRequestText] = useState("");
-  const [showReassign, setShowReassign] = useState(false);
-  const [reassignTarget, setReassignTarget] = useState("");
+  const [issue, setIssue] = useState<StaffIssueDetailsData | null>(null);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [staffMembers, setStaffMembers] = useState<ApiAssignableStaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [assignmentSaving, setAssignmentSaving] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [currentStatus, setCurrentStatus] = useState<IssueStatus | "">("");
+  const [currentCategoryId, setCurrentCategoryId] = useState<string>("");
+  const [currentAssigneeId, setCurrentAssigneeId] = useState<string>("unassigned");
+  const [staffNote, setStaffNote] = useState("");
 
-  const parseDaysElapsed = () => {
-    if (!issue) return 0;
-    const reported = new Date(issue.dateReported);
-    const now = new Date("25 Mar 2026");
-    return Math.max(0, Math.floor((now.getTime() - reported.getTime()) / 86400000));
+  const loadPageData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      if (!user || !issueId) {
+        setIssue(null);
+        setCategories([]);
+        setStaffMembers([]);
+        return;
+      }
+
+      const token = await user.getIdToken();
+
+      const [issueResponse, categoriesResponse, staffResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/issues/${issueId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_BASE_URL}/api/categories`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_BASE_URL}/api/users/staff-members`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
+
+      const issueData = await issueResponse.json();
+      const categoriesData = await categoriesResponse.json();
+      const staffData = await staffResponse.json();
+
+      if (!issueResponse.ok) {
+        throw new Error(issueData.message || "Failed to fetch issue");
+      }
+
+      if (!categoriesResponse.ok) {
+        throw new Error(categoriesData.message || "Failed to fetch categories");
+      }
+
+      if (!staffResponse.ok) {
+        throw new Error(staffData.message || "Failed to fetch staff members");
+      }
+
+      const nextIssue = issueData.issue || null;
+      const nextCategories = Array.isArray(categoriesData.categories) ? categoriesData.categories : [];
+      const nextStaffMembers = Array.isArray(staffData.staffMembers) ? staffData.staffMembers : [];
+
+      setIssue(nextIssue);
+      setCategories(nextCategories);
+      setStaffMembers(nextStaffMembers);
+      setCurrentStatus(nextIssue?.status || "");
+      setCurrentCategoryId(nextIssue?.categoryId ? String(nextIssue.categoryId) : "");
+      setCurrentAssigneeId(nextIssue?.staff?.id ? String(nextIssue.staff.id) : "unassigned");
+    } catch (err: any) {
+      setError(err.message || "Unable to load issue details.");
+      setIssue(null);
+      setCategories([]);
+      setStaffMembers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const days = parseDaysElapsed();
+  useEffect(() => {
+    if (!authLoading) {
+      loadPageData();
+    }
+  }, [user, authLoading, issueId]);
+
+  const handleSaveStatus = async () => {
+    if (!issue || !currentStatus || currentStatus === issue.status || !user) {
+      return;
+    }
+
+    try {
+      setStatusSaving(true);
+      setError("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: currentStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update issue status");
+      }
+
+      await loadPageData();
+    } catch (err: any) {
+      setError(err.message || "Unable to update issue status.");
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleSaveCategory = async () => {
+    if (!issue || !currentCategoryId || String(issue.categoryId || "") === currentCategoryId || !user) {
+      return;
+    }
+
+    try {
+      setCategorySaving(true);
+      setError("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/category`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          categoryId: Number(currentCategoryId),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update issue category");
+      }
+
+      await loadPageData();
+    } catch (err: any) {
+      setError(err.message || "Unable to update issue category.");
+    } finally {
+      setCategorySaving(false);
+    }
+  };
+
+  const handleSaveAssignment = async () => {
+    if (!issue || !user) {
+      return;
+    }
+
+    const existingAssignment = issue.staff?.id ? String(issue.staff.id) : "unassigned";
+
+    if (currentAssigneeId === existingAssignment) {
+      return;
+    }
+
+    try {
+      setAssignmentSaving(true);
+      setError("");
+
+      const token = await user.getIdToken();
+      const nextStaffId = currentAssigneeId === "unassigned" ? null : Number(currentAssigneeId);
+
+      const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/assignment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          staffId: nextStaffId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update assignment");
+      }
+
+      await loadPageData();
+    } catch (err: any) {
+      setError(err.message || "Unable to update assignment.");
+    } finally {
+      setAssignmentSaving(false);
+    }
+  };
 
   const handleAssignToMe = () => {
-    setAssignedTo("Staff User");
-    const now = new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    setTimeline((prev: any[]) => [
-      ...prev,
-      { event: "Assigned to Staff User", date: now, type: "status" },
-    ]);
+    if (appUser?.staffProfile?.id) {
+      setCurrentAssigneeId(String(appUser.staffProfile.id));
+    }
   };
 
-  const handleReassign = () => {
-    if (!reassignTarget) return;
+  const handleSaveNote = async () => {
+    if (!issue || !user || !staffNote.trim()) {
+      return;
+    }
 
-    setAssignedTo(reassignTarget);
+    try {
+      setNoteSaving(true);
+      setError("");
 
-    const now = new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+      const token = await user.getIdToken();
 
-    setTimeline((prev: any[]) => [
-      ...prev,
-      { event: `Reassigned to ${reassignTarget}`, date: now, type: "status" },
-    ]);
+      const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/notes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          content: staffNote.trim(),
+        }),
+      });
 
-    setShowReassign(false);
-    setReassignTarget("");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to save staff note");
+      }
+
+      setStaffNote("");
+      await loadPageData();
+    } catch (err: any) {
+      setError(err.message || "Unable to save staff note.");
+    } finally {
+      setNoteSaving(false);
+    }
   };
 
-  const handleSendInfoRequest = () => {
-    if (!infoRequestText.trim()) return;
+  const daysOpen = useMemo(() => {
+    if (!issue) return 0;
+    return calculateDaysOpen(issue.createdAt, issue.status, issue.updatedAt);
+  }, [issue]);
 
-    const now = new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const assignmentUnchanged = useMemo(() => {
+    if (!issue) return true;
+    const existingAssignment = issue.staff?.id ? String(issue.staff.id) : "unassigned";
+    return currentAssigneeId === existingAssignment;
+  }, [issue, currentAssigneeId]);
 
-    setTimeline((prev: any[]) => [
-      ...prev,
-      {
-        event: "Information request sent to citizen",
-        date: now,
-        type: "note",
-      },
-    ]);
+  const categoryUnchanged = useMemo(() => {
+    if (!issue) return true;
+    return String(issue.categoryId || "") === currentCategoryId;
+  }, [issue, currentCategoryId]);
 
-    setInfoRequestText("");
-  };
-
-  if (!issue) {
+  if (loading || authLoading) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
+          <StaffAppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
-            <DashboardHeader pageTitle="Issue Details" />
+            <StaffDashboardHeader pageTitle="Issue Details" />
+            <main className="flex-1 p-6 flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Loading issue details...</p>
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  if (error && !issue) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <StaffAppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <StaffDashboardHeader pageTitle="Issue Details" />
             <main className="flex-1 p-6 flex items-center justify-center">
               <div className="text-center">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <h2 className="text-lg font-heading font-semibold text-foreground mb-1">
-                  Issue not found
-                </h2>
+                <h2 className="text-lg font-semibold text-foreground mb-1">Issue not found</h2>
                 <p className="text-sm text-muted-foreground mb-4">
-                  The issue "{issueId}" could not be found.
+                  {error || "The selected issue could not be loaded."}
                 </p>
                 <Button variant="outline" onClick={() => navigate("/staff/issues")}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -211,381 +442,230 @@ const StaffIssueDetails = () => {
     );
   }
 
-  const handleSaveStatus = () => {
-    if (currentStatus !== issue.status) {
-      const newEvent = {
-        event: `Status changed to ${currentStatus}`,
-        date: new Date().toLocaleString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        type: "status",
-      };
-      setTimeline((prev: any[]) => [...prev, newEvent]);
-    }
-  };
-
-  const handleAddNote = () => {
-    if (!noteText.trim()) return;
-
-    const now = new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const newNote = {
-      author: "Staff User",
-      date: now,
-      text: noteText.trim(),
-    };
-
-    const newEvent = {
-      event: "Staff note added by Staff User",
-      date: now,
-      type: "note",
-    };
-
-    setNotes((prev: any[]) => [...prev, newNote]);
-    setTimeline((prev: any[]) => [...prev, newEvent]);
-    setNoteText("");
-  };
+  if (!issue) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <StaffAppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader pageTitle="Issue Details" />
+          <StaffDashboardHeader pageTitle="Issue Details" />
 
           <main className="flex-1 p-5 lg:p-6 overflow-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/staff/issues")}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1.5" />
-                  Back to All Issues
-                </Button>
-
-                <Separator orientation="vertical" className="h-5 hidden sm:block" />
-
-                <span className="font-mono text-sm font-semibold text-primary">
-                  {issue.id}
-                </span>
-
-                <Badge
-                  variant="outline"
-                  className={`text-xs font-medium ${statusVariant[currentStatus] || ""}`}
-                >
-                  {currentStatus}
-                </Badge>
-
-                <Badge
-                  variant="outline"
-                  className="text-xs font-medium bg-muted text-muted-foreground border-border"
-                >
-                  <Clock className="w-3 h-3 mr-1" />
-                  {days === 0 ? "Today" : days === 1 ? "1 day ago" : `${days} days ago`}
-                </Badge>
-              </div>
+            <div className="mb-4">
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
             </div>
 
-            <div className="flex gap-6">
-              <div className="flex-1 min-w-0 space-y-5">
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h2 className="text-lg font-heading font-bold text-card-foreground mb-4">
-                    {issue.title}
-                  </h2>
+            {error ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive mb-4">
+                {error}
+              </div>
+            ) : null}
 
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <InfoField icon={FileText} label="Category" value={issue.category} />
-                    <InfoField
-                      icon={Calendar}
-                      label="Date Reported"
-                      value={issue.dateReported}
-                    />
-                    <InfoField
-                      icon={Clock}
-                      label="Last Updated"
-                      value={issue.lastUpdated}
-                    />
-
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                        Status
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs font-medium ${statusVariant[currentStatus] || ""}`}
-                      >
-                        {currentStatus}
-                      </Badge>
+            <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.85fr] gap-6">
+              <div className="space-y-6">
+                <section className="rounded-lg border bg-card p-5">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-xs font-mono text-primary mb-2">{issue.caseId}</p>
+                      <h2 className="text-xl font-heading font-semibold text-foreground">
+                        {issue.title}
+                      </h2>
                     </div>
-                  </div>
-                </div>
 
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                    Citizen Submitted Details
-                  </h3>
-
-                  <p className="text-sm text-card-foreground leading-relaxed mb-4">
-                    {issue.description}
-                  </p>
-
-                  <div className="flex items-start gap-2 mb-3">
-                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Location
-                      </p>
-                      <p className="text-sm text-card-foreground">{issue.location}</p>
-                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-medium ${getIssueStatusClass(issue.status)}`}
+                    >
+                      {formatIssueStatus(issue.status)}
+                    </Badge>
                   </div>
 
-                  <div className="mt-4 border border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground">
-                    <ImageIcon className="w-8 h-8 mb-2 opacity-40" />
-                    <p className="text-xs">No images attached</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5 text-sm">
+                    <MetaRow icon={Calendar} label="Date Reported" value={formatShortDate(issue.createdAt)} />
+                    <MetaRow icon={Clock} label="Days Open" value={daysOpen === 0 ? "Today" : `${daysOpen} days`} />
+                    <MetaRow icon={Calendar} label="Last Updated" value={formatShortDateTime(issue.updatedAt)} />
+                    <MetaRow icon={FileText} label="Category" value={issue.category?.name || "Uncategorised"} />
+                    <MetaRow icon={User} label="Assigned To" value={issue.staff?.user?.fullName || "Unassigned"} />
+                    <MetaRow icon={MapPin} label="Location" value={buildIssueLocation(issue)} />
                   </div>
-                </div>
 
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    Reporter Information
-                  </h3>
+                  <Separator className="my-5" />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <InfoField icon={User} label="Name" value={issue.reporter.name} />
-                    <InfoField icon={Mail} label="Email" value={issue.reporter.email} />
-                    <InfoField
-                      icon={Phone}
-                      label="Phone"
-                      value={issue.reporter.phone || "Not provided"}
-                      muted={!issue.reporter.phone}
-                    />
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground leading-6">{issue.description}</p>
                   </div>
-                </div>
+                </section>
 
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-4 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    Case Timeline
-                  </h3>
+                <section className="rounded-lg border bg-card p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Case Timeline</h3>
 
-                  <div className="relative">
-                    <div className="absolute left-[13px] top-3 bottom-3 w-px bg-border" />
-                    <div className="space-y-4">
-                      {timeline.map((entry: any, i: number) => {
-                        const Icon = timelineIcon[entry.type] || AlertCircle;
-                        const color =
-                          timelineColor[entry.type] || "text-muted-foreground bg-muted";
+                  <div className="space-y-4">
+                    {issue.history.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No history entries yet.</p>
+                    ) : (
+                      issue.history.map((item) => {
+                        const Icon = timelineIconMap[item.eventType] || MessageSquare;
+                        const colorClass = timelineColorMap[item.eventType] || "text-primary bg-primary/10";
 
                         return (
-                          <div key={i} className="flex items-start gap-3 relative">
-                            <div
-                              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 ${color}`}
-                            >
-                              <Icon className="w-3.5 h-3.5" />
+                          <div key={item.id} className="flex gap-3">
+                            <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                              <Icon className="w-4 h-4" />
                             </div>
-                            <div className="pt-0.5">
-                              <p className="text-sm text-card-foreground">{entry.event}</p>
-                              <p className="text-xs text-muted-foreground">{entry.date}</p>
+
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">{getTimelineTitle(item)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatShortDateTime(item.changedAt)}
+                                {item.changedByUser?.fullName ? ` • ${item.changedByUser.fullName}` : ""}
+                              </p>
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      })
+                    )}
                   </div>
-                </div>
+                </section>
+
+                <section className="rounded-lg border bg-card p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Staff Notes</h3>
+
+                  <div className="space-y-4 mb-5">
+                    <Textarea
+                      value={staffNote}
+                      onChange={(event) => setStaffNote(event.target.value)}
+                      placeholder="Add a progress update for the citizen"
+                      className="min-h-28 resize-y"
+                    />
+                    <Button onClick={handleSaveNote} disabled={noteSaving || !staffNote.trim()}>
+                      {noteSaving ? "Saving..." : "Save Note"}
+                    </Button>
+                  </div>
+
+                  <Separator className="mb-4" />
+
+                  <div className="space-y-4">
+                    {issue.notes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No staff notes recorded yet.</p>
+                    ) : (
+                      issue.notes.map((note) => (
+                        <div key={note.id} className="rounded-lg border bg-muted/20 p-4">
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {note.staff?.user?.fullName || "Staff user"} • {formatShortDateTime(note.createdAt)}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
               </div>
 
-              <div className="w-80 xl:w-96 shrink-0 space-y-5">
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    Assigned To
-                  </h3>
+              <div className="space-y-6">
+                <section className="rounded-lg border bg-card p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Reporter</h3>
 
-                  {assignedTo ? (
-                    <p className="text-sm text-card-foreground font-medium mb-3">
-                      {assignedTo}
-                    </p>
-                  ) : (
-                    <div className="mb-3">
-                      <p className="text-sm text-muted-foreground italic mb-3">Unassigned</p>
+                  <div className="space-y-3 text-sm">
+                    <MetaRow icon={User} label="Name" value={issue.citizen?.fullName || "Unknown"} />
+                    <MetaRow icon={Mail} label="Email" value={issue.citizen?.email || "Not available"} />
+                  </div>
+                </section>
+
+                <section className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <UserRoundCheck className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Assignment</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Select value={currentAssigneeId} onValueChange={setCurrentAssigneeId}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select assignee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {staffMembers.map((member) => (
+                          <SelectItem key={member.id} value={String(member.id)}>
+                            {getStaffDisplayName(member)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Button
-                        onClick={handleAssignToMe}
+                        type="button"
                         variant="outline"
-                        className="w-full h-10 text-sm font-semibold"
+                        onClick={handleAssignToMe}
+                        disabled={!appUser?.staffProfile?.id}
                       >
                         Assign to Me
                       </Button>
+                      <Button onClick={handleSaveAssignment} disabled={assignmentSaving || assignmentUnchanged}>
+                        {assignmentSaving ? "Saving..." : "Save Assignment"}
+                      </Button>
                     </div>
-                  )}
+                  </div>
+                </section>
 
-                  {!showReassign ? (
-                    <Button
-                      onClick={() => setShowReassign(true)}
-                      variant="outline"
-                      className="w-full h-10 text-sm font-medium"
-                    >
-                      <UserPlus className="w-4 h-4 mr-1.5" />
-                      Reassign To
+                <section className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Update Status</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Select value={currentStatus} onValueChange={(value) => setCurrentStatus(value as IssueStatus)}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ALL_ISSUE_STATUSES.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {formatIssueStatus(status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button onClick={handleSaveStatus} disabled={statusSaving || !currentStatus || currentStatus === issue.status} className="w-full">
+                      {statusSaving ? "Saving..." : "Save Status"}
                     </Button>
-                  ) : (
-                    <div className="space-y-2 border-t border-border pt-3">
-                      <Select value={reassignTarget} onValueChange={setReassignTarget}>
-                        <SelectTrigger className="h-10 text-sm bg-background">
-                          <SelectValue placeholder="Select staff member..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[
-                            "J. Martinez",
-                            "S. Patel",
-                            "R. Chen",
-                            "Staff User",
-                            "A. Williams",
-                            "K. O'Brien",
-                          ].map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  </div>
+                </section>
 
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleReassign}
-                          disabled={!reassignTarget}
-                          className="flex-1 h-9 text-sm font-semibold"
-                        >
-                          Confirm Reassignment
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setShowReassign(false);
-                            setReassignTarget("");
-                          }}
-                          variant="ghost"
-                          className="h-9 text-sm"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <section className="rounded-lg border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Tag className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Update Category</h3>
+                  </div>
 
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-                    Update Status
-                  </h3>
+                  <div className="space-y-3">
+                    <Select value={currentCategoryId} onValueChange={setCurrentCategoryId}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={String(category.id)}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                  <Select value={currentStatus} onValueChange={setCurrentStatus}>
-                    <SelectTrigger className="h-10 text-sm bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Resolved">Resolved</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    onClick={handleSaveStatus}
-                    className="w-full mt-3 h-10 text-sm font-semibold"
-                  >
-                    Save Status Update
-                  </Button>
-                </div>
-
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    Staff Notes
-                  </h3>
-
-                  <Textarea
-                    placeholder="Add an internal note about this issue..."
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    className="min-h-[100px] text-sm bg-background resize-none"
-                  />
-
-                  <Button
-                    onClick={handleAddNote}
-                    disabled={!noteText.trim()}
-                    className="w-full mt-3 h-10 text-sm font-semibold"
-                  >
-                    Add Note
-                  </Button>
-
-                  {notes.length > 0 && (
-                    <div className="mt-5 pt-4 border-t border-border space-y-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Previous Notes
-                      </p>
-
-                      {notes.map((note: any, i: number) => (
-                        <div key={i} className="bg-muted/40 rounded-md p-3">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-semibold text-card-foreground">
-                              {note.author}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">
-                              {note.date}
-                            </span>
-                          </div>
-                          <p className="text-sm text-card-foreground leading-relaxed">
-                            {note.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-card rounded-lg border border-border p-6">
-                  <h3 className="text-sm font-heading font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    Request More Information
-                  </h3>
-
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Send a message to the citizen requesting additional details about this issue.
-                  </p>
-
-                  <Textarea
-                    placeholder="Describe what additional information is needed..."
-                    value={infoRequestText}
-                    onChange={(e) => setInfoRequestText(e.target.value)}
-                    className="min-h-[80px] text-sm bg-background resize-none"
-                  />
-
-                  <Button
-                    onClick={handleSendInfoRequest}
-                    disabled={!infoRequestText.trim()}
-                    variant="secondary"
-                    className="w-full mt-3 h-10 text-sm font-semibold"
-                  >
-                    Send Request
-                  </Button>
-                </div>
+                    <Button onClick={handleSaveCategory} disabled={categorySaving || !currentCategoryId || categoryUnchanged} className="w-full">
+                      {categorySaving ? "Saving..." : "Save Category"}
+                    </Button>
+                  </div>
+                </section>
               </div>
             </div>
           </main>
@@ -595,26 +675,20 @@ const StaffIssueDetails = () => {
   );
 };
 
-const InfoField = ({
+const MetaRow = ({
   icon: Icon,
   label,
   value,
-  muted = false,
 }: {
   icon: any;
   label: string;
   value: string;
-  muted?: boolean;
 }) => (
-  <div className="flex items-start gap-2">
+  <div className="flex items-start gap-2.5">
     <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-    <div>
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-        {label}
-      </p>
-      <p className={`text-sm ${muted ? "text-muted-foreground italic" : "text-card-foreground"}`}>
-        {value}
-      </p>
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm text-foreground break-words">{value}</p>
     </div>
   </div>
 );
