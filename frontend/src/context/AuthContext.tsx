@@ -58,13 +58,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           },
         });
 
+        const data = await response.json().catch(() => ({}));
+
         if (!response.ok) {
+          if (response.status === 403) {
+            await signOut(auth);
+          }
+
           setAppUser(null);
           setLoading(false);
           return;
         }
 
-        const data = await response.json();
+        if (data.user?.isActive === false) {
+          await signOut(auth);
+          setAppUser(null);
+          setLoading(false);
+          return;
+        }
+
         setAppUser(data.user || null);
       } catch (error) {
         console.error("AuthContext profile load error:", error);

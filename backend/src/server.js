@@ -6,6 +6,7 @@ const prisma = require("./lib/prisma");
 const issueRoutes = require("./routes/issueRoutes");
 const userRoutes = require("./routes/userRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -35,6 +36,7 @@ app.get("/health/db", async (req, res) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

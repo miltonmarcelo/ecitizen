@@ -8,8 +8,10 @@ import {
   Building2,
   Clock,
   KeyRound,
+  ArrowLeft,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
   DropdownMenu,
@@ -23,21 +25,31 @@ interface StaffDashboardHeaderProps {
   pageTitle?: string;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  showBackButton?: boolean;
+  backTo?: string;
+  backLabel?: string;
 }
 
 const StaffDashboardHeader = ({
   pageTitle = "Operational Dashboard",
   searchValue = "",
   onSearchChange,
+  searchPlaceholder = "Search issue ID, title, or keyword...",
+  showBackButton = false,
+  backTo = "/staff/dashboard",
+  backLabel = "Back",
 }: StaffDashboardHeaderProps) => {
   const navigate = useNavigate();
   const { appUser, logout } = useAuth();
 
+  const isAdmin = appUser?.role === "ADMIN";
+
   const staffProfile = {
     name: appUser?.fullName || "Staff User",
-    role: "Operational Staff",
+    role: isAdmin ? "Administrator" : "Operational Staff",
     email: appUser?.email || "staff.user@council.gov.uk",
-    department: "Operations",
+    department: isAdmin ? "Administration" : "Operations",
     employeeId: appUser?.staffProfile?.id
       ? `STAFF-${appUser.staffProfile.id}`
       : "EMP-00421",
@@ -55,24 +67,36 @@ const StaffDashboardHeader = ({
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6 shrink-0">
-      <div className="flex items-center gap-3">
-        <h1 className="hidden sm:block text-sm font-heading font-semibold text-foreground">
+      <div className="flex items-center gap-3 min-w-0">
+        {showBackButton ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(backTo)}
+            className="h-8 px-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            {backLabel}
+          </Button>
+        ) : null}
+
+        <h1 className="hidden sm:block text-sm font-heading font-semibold text-foreground truncate">
           {pageTitle}
         </h1>
       </div>
 
       <div className="flex items-center gap-3">
-        {onSearchChange && (
+        {onSearchChange ? (
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search issue ID, title, or keyword..."
+              placeholder={searchPlaceholder}
               className="pl-9 h-9 w-72 text-sm bg-background"
             />
           </div>
-        )}
+        ) : null}
 
         <div className="pl-2 border-l border-border">
           <DropdownMenu>

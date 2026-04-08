@@ -29,6 +29,13 @@ import StaffDashboard from "./pages/StaffDashboard";
 import StaffAllReports from "./pages/StaffAllReports";
 import StaffIssueDetails from "./pages/StaffIssueDetails";
 
+import AdminPanel from "./pages/AdminPanel";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminStaff from "./pages/AdminStaff";
+import AdminCategories from "./pages/AdminCategories";
+import AdminDatabase from "./pages/AdminDatabase";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -195,18 +202,52 @@ const App = () => (
             />
 
             <Route path="/contact" element={<ContactPage />} />
+
             <Route
               path="/admin"
               element={
                 <AdminRoute>
-                  <div className="min-h-screen flex items-center justify-center bg-background">
-                    <div className="rounded-lg border bg-card p-6">
-                      <h1 className="text-lg font-semibold">Admin Panel</h1>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Admin area coming next.
-                      </p>
-                    </div>
-                  </div>
+                  <AdminPanel />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/staff"
+              element={
+                <AdminRoute>
+                  <AdminStaff />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/categories"
+              element={
+                <AdminRoute>
+                  <AdminCategories />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/database"
+              element={
+                <AdminRoute>
+                  <AdminDatabase />
                 </AdminRoute>
               }
             />

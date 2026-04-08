@@ -28,6 +28,12 @@ async function auth(req, res, next) {
       });
     }
 
+    if (user && user.isActive === false) {
+      return res.status(403).json({
+        message: "This account has been disabled",
+      });
+    }
+
     req.firebaseUser = decoded;
     req.user = user;
     next();
