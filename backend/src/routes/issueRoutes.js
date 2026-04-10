@@ -328,6 +328,95 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+router.get("/public-stats/summary", async (req, res) => {
+  try {
+    const [totalIssues, resolvedIssues, closedHistoryItems] = await Promise.all([
+      prisma.issue.count(),
+      prisma.issue.count({
+        where: {
+          status: {
+            in: [ISSUE_STATUS.RESOLVED, ISSUE_STATUS.CLOSED],
+          },
+        },
+      }),
+      prisma.issueHistory.findMany({
+        where: {
+          toStatus: {
+            in: [ISSUE_STATUS.RESOLVED, ISSUE_STATUS.CLOSED],
+          },
+        },
+        select: {
+          issueId: true,
+          changedAt: true,
+        },
+        orderBy: {
+          changedAt: "asc",
+        },
+      }),
+    ]);
+
+    const firstClosedByIssueId = new Map();
+
+    for (const item of closedHistoryItems) {
+      if (!firstClosedByIssueId.has(item.issueId)) {
+        firstClosedByIssueId.set(item.issueId, item.changedAt);
+      }
+    }
+
+    const issueIds = Array.from(firstClosedByIssueId.keys());
+
+    const closedIssues =
+      issueIds.length > 0
+        ? await prisma.issue.findMany({
+            where: {
+              id: {
+                in: issueIds,
+              },
+            },
+            select: {
+              id: true,
+              createdAt: true,
+            },
+          })
+        : [];
+
+    const closeDurationsMs = closedIssues
+      .map((issue) => {
+        const closedAt = firstClosedByIssueId.get(issue.id);
+        if (!closedAt) return null;
+
+        const createdAtMs = new Date(issue.createdAt).getTime();
+        const closedAtMs = new Date(closedAt).getTime();
+        const duration = closedAtMs - createdAtMs;
+
+        return duration >= 0 ? duration : null;
+      })
+      .filter((value) => value !== null);
+
+    const averageCloseMs =
+      closeDurationsMs.length > 0
+        ? closeDurationsMs.reduce((sum, value) => sum + value, 0) / closeDurationsMs.length
+        : 0;
+
+    const averageCloseDays = averageCloseMs / (1000 * 60 * 60 * 24);
+
+    const resolutionRate = totalIssues > 0 ? (resolvedIssues / totalIssues) * 100 : 0;
+
+    return res.status(200).json({
+      totalIssues,
+      resolvedIssues,
+      resolutionRate,
+      averageCloseDays,
+    });
+  } catch (error) {
+    console.error("Get public stats error:", error);
+    return res.status(500).json({
+      message: "Failed to fetch public stats",
+      details: error.message,
+    });
+  }
+});
+
 router.get("/:caseId", auth, async (req, res) => {
   try {
     const { caseId } = req.params;
