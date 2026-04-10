@@ -13,7 +13,7 @@ import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
-import DashboardPage from "./pages/Dashboard";
+import DashboardPage from "./pages/CitizenDashboard";
 import ReportIssuePage from "./pages/ReportIssue";
 import ReportSuccessPage from "./pages/ReportSuccess";
 import MyReportsPage from "./pages/MyReports";
@@ -23,6 +23,8 @@ import AreaIssuesPage from "./pages/AreaIssues";
 import PublicIssueDetailsPage from "./pages/PublicIssueDetails";
 import ChangePasswordPage from "./pages/ChangePassword";
 import ContactPage from "./pages/ContactPage";
+import ForgotPasswordPage from "./pages/ForgotPassword";
+import ForgotPasswordConfirmationPage from "./pages/ForgotPasswordConfirmation";
 import NotFound from "./pages/NotFound";
 
 import StaffDashboard from "./pages/StaffDashboard";
@@ -62,6 +64,24 @@ const App = () => (
               element={
                 <PublicOnlyRoute>
                   <RegisterPage />
+                </PublicOnlyRoute>
+              }
+            />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnlyRoute>
+                  <ForgotPasswordPage />
+                </PublicOnlyRoute>
+              }
+            />
+
+            <Route
+              path="/forgot-password-confirmation"
+              element={
+                <PublicOnlyRoute>
+                  <ForgotPasswordConfirmationPage />
                 </PublicOnlyRoute>
               }
             />

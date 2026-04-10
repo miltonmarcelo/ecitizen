@@ -11,11 +11,6 @@ import {
 import { auth } from "@/firebase/firebase";
 import TopBar from "@/components/TopBar";
 
-const HELP_ITEMS = [
-  { icon: FileText, text: "Submit and manage issue reports" },
-  { icon: Search, text: "Track progress on your cases" },
-];
-
 const LoginPage = () => {
   const navigate = useNavigate();
 
@@ -80,7 +75,7 @@ const LoginPage = () => {
       } else if (err.code === "auth/invalid-email") {
         setError("Please enter a valid email address.");
       } else {
-        setError(err.message || "Unable to login. Please try again.");
+        setError(err.message || "Unable to log in. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -98,8 +93,8 @@ const LoginPage = () => {
           transition={{ duration: 0.4 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold text-foreground mb-1">Welcome Back</h1>
-          <p className="text-sm text-muted-foreground">Login to manage your reports</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Welcome Back to eCitizen</h1>
+          <p className="text-sm text-muted-foreground">Log in to report and track issues in your area</p>
         </motion.div>
 
         <motion.div
@@ -163,7 +158,7 @@ const LoginPage = () => {
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button type="submit" className="btn-primary-civic w-full mt-1" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Logging in..." : "Log in"}
             </button>
           </form>
         </motion.div>
@@ -179,23 +174,6 @@ const LoginPage = () => {
             Register
           </button>
         </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          className="card-civic bg-primary/5 border-primary/15"
-        >
-          <p className="text-xs font-semibold text-foreground mb-3">After logging in you can:</p>
-          <div className="flex flex-col gap-2.5">
-            {HELP_ITEMS.map((item) => (
-              <div key={item.text} className="flex items-center gap-2.5">
-                <item.icon size={15} className="text-primary shrink-0" />
-                <span className="text-xs text-muted-foreground">{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
       </main>
     </div>
   );

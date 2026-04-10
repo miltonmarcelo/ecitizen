@@ -183,12 +183,12 @@ const IssueDetailsPage = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch issue");
+          throw new Error(data.message || "Unable to load this report. Please try again.");
         }
 
         setIssue(data.issue);
       } catch (err: any) {
-        setError(err.message || "Unable to load issue details.");
+        setError(err.message || "Unable to load report details.");
       } finally {
         setLoading(false);
       }
@@ -221,9 +221,9 @@ const IssueDetailsPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
         <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-        <h2 className="text-lg font-semibold text-foreground mb-1">Issue Not Found</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-1">Report Not Found</h2>
         <p className="text-sm text-muted-foreground mb-6 text-center">
-          {error || "The report you're looking for doesn't exist."}
+          {error || "We couldn't find this report. It may have been removed or the link may be incorrect."}
         </p>
         <button
           onClick={() => navigate("/my-reports")}
@@ -273,14 +273,14 @@ const IssueDetailsPage = () => {
         </motion.div>
 
         <motion.div {...fadeUp(0.05)} className="card-civic space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Description</h3>
+          <h3 className="text-sm font-semibold text-foreground">What was reported</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {issue.description}
           </p>
         </motion.div>
 
         <motion.div {...fadeUp(0.1)} className="card-civic space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Location</h3>
+          <h3 className="text-sm font-semibold text-foreground">Where it happened</h3>
           <div className="text-sm text-muted-foreground space-y-1">
             <p>{issue.addressLine1}</p>
             {issue.addressLine2 && <p>{issue.addressLine2}</p>}
@@ -292,7 +292,7 @@ const IssueDetailsPage = () => {
         </motion.div>
 
         <motion.div {...fadeUp(0.15)} className="card-civic space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Status Timeline</h3>
+          <h3 className="text-sm font-semibold text-foreground">Progress so far</h3>
           <div className="relative pl-5">
             {timeline.map((step, idx) => {
               const isLast = idx === timeline.length - 1;
@@ -342,7 +342,7 @@ const IssueDetailsPage = () => {
         {issue.notes?.length > 0 && (
           <motion.div {...fadeUp(0.2)} className="card-civic space-y-3">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <MessageSquare size={14} /> Official Updates
+              <MessageSquare size={14} /> Updates from the team
             </h3>
 
             <div className="space-y-2.5">
@@ -376,7 +376,7 @@ const IssueDetailsPage = () => {
             <div className="flex items-center gap-2 text-warning">
               <Eye size={30}/>
               <p className="text-sm font-medium">
-                Your report is in the queue and our team is reviewing it. We'll update you once there's progress.
+                Your report is being reviewed. We'll let you know as soon as there's an update.
               </p>
             </div>
           </motion.div>
@@ -418,7 +418,7 @@ const IssueDetailsPage = () => {
             <div className="flex items-center gap-2 text-destructive">
               <CircleX size={30} />
               <p className="text-sm font-medium">
-                This report has been cancelled. Feel free to reopen or submit a new report anytime.
+                This report has been cancelled. If the issue is still there, you're welcome to submit a new report.
               </p>
             </div>
           </motion.div>
@@ -445,7 +445,7 @@ const IssueDetailsPage = () => {
             <div className="flex items-center gap-2 text-primary">
               <ClipboardCheck size={30} />
               <p className="text-sm font-medium">
-                We've received your report and will get to work on it. We'll keep you posted.
+                We've received your report. Our team will review it shortly and keep you updated.
               </p>
             </div>
           </motion.div>
@@ -464,7 +464,7 @@ const IssueDetailsPage = () => {
             onClick={() => navigate("/report")}
             className="flex-1 flex items-center justify-center gap-2 text-sm rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground hover:bg-muted transition-colors"
           >
-            Report Another Issue
+            Submit a New Report
           </button>
         </motion.div>
       </main>

@@ -223,7 +223,7 @@ const MyReportsPage = () => {
         <motion.div {...fadeUp(0)}>
           <h2 className="text-xl font-bold text-foreground">My Reports</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            All your submitted reports, in one place.
+            Track and manage everything you've reported
           </p>
         </motion.div>
 
@@ -294,7 +294,7 @@ const MyReportsPage = () => {
                 }}
                 className="text-xs text-destructive font-medium hover:underline"
               >
-                Clear
+                Clear filter
               </button>
             )}
 
@@ -336,17 +336,17 @@ const MyReportsPage = () => {
         <div className="space-y-3">
           {loading || authLoading ? (
             <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
-              <p className="text-sm text-muted-foreground">Loading your issues...</p>
+              <p className="text-sm text-muted-foreground">Loading your reports...</p>
             </motion.div>
           ) : error ? (
             <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
-              <p className="text-sm font-medium text-destructive">Unable to load issues</p>
+              <p className="text-sm font-medium text-destructive">Unable to load reports</p>
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </motion.div>
           ) : filtered.length === 0 ? (
             <motion.div {...fadeUp(0.1)} className="card-civic text-center py-10">
               <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground">No issues found</p>
+              <p className="text-sm font-medium text-foreground">No reports found</p>
               <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters.</p>
             </motion.div>
           ) : (

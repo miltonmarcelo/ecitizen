@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Mail, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -8,22 +8,59 @@ import { auth } from "@/firebase/firebase";
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const actionCodeSettings = useMemo(() => {
+    const fallbackUrl = `${window.location.origin}/login`;
+    const configuredUrl = import.meta.env.VITE_PASSWORD_RESET_CONTINUE_URL;
+
+    return {
+      url: configuredUrl || fallbackUrl,
+      handleCodeInApp: false,
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
 
-    if (!email.trim()) return;
+    const trimmedEmail = email.trim();
 
-    setIsSubmitting(true);
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
 
     try {
-      await sendPasswordResetEmail(auth, email.trim());
-    } catch (error) {
-      console.error("Password reset request failed:", error);
+      setIsSubmitting(true);
+
+      await sendPasswordResetEmail(auth, trimmedEmail, actionCodeSettings);
+
+      navigate("/forgot-password-confirmation", {
+        state: { email: trimmedEmail },
+      });
+    } catch (err: any) {
+      console.error("Password reset request failed:", err);
+
+      if (err?.code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+        return;
+      }
+
+      if (err?.code === "auth/too-many-requests") {
+        setError("Too many attempts. Please try again later.");
+        return;
+      }
+
+      if (err?.code === "auth/network-request-failed") {
+        setError("Network error. Please check your connection and try again.");
+        return;
+      }
+
+      setError("Unable to send reset email right now. Please try again.");
     } finally {
       setIsSubmitting(false);
-      navigate("/forgot-password-confirmation", { state: { email } });
     }
   };
 
@@ -74,6 +111,7 @@ const ForgotPasswordPage = () => {
                   className="input-civic pr-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
                 <Mail
@@ -82,6 +120,8 @@ const ForgotPasswordPage = () => {
                 />
               </div>
             </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
               type="submit"

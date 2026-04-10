@@ -11,11 +11,6 @@ import {
 import { auth } from "@/firebase/firebase";
 import TopBar from "@/components/TopBar";
 
-const BENEFITS = [
-  { icon: BarChart3, text: "Track your reported issues in real time" },
-  { icon: Bell, text: "Receive updates when status changes" },
-  { icon: ShieldCheck, text: "Support existing reports in your area" },
-];
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -26,7 +21,6 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -51,11 +45,6 @@ const RegisterPage = () => {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
-      return;
-    }
-
-    if (!agreed) {
-      setError("Please accept the terms to continue.");
       return;
     }
 
@@ -118,7 +107,7 @@ const RegisterPage = () => {
       }
 
       if (firebaseErrorCode === "auth/email-already-in-use") {
-        setError("This email is already in use. Please login instead or use another email.");
+        setError("This email is already in use. Please log in instead or use another email.");
       } else if (firebaseErrorCode === "auth/invalid-email") {
         setError("Please enter a valid email address.");
       } else if (firebaseErrorCode === "auth/weak-password") {
@@ -154,7 +143,7 @@ const RegisterPage = () => {
           transition={{ delay: 0.1, duration: 0.4 }}
           className="card-civic mb-5"
         >
-          <form className="flex flex-col gap-4" onSubmit={handleRegister}>
+          <form className="flex flex-col gap-4" onSubmit={handleRegister} autoComplete="on">
             <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">Full Name</label>
               <input
@@ -163,6 +152,7 @@ const RegisterPage = () => {
                 className="input-civic"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name"
               />
             </div>
 
@@ -174,6 +164,7 @@ const RegisterPage = () => {
                 className="input-civic"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
 
@@ -217,15 +208,9 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-border text-primary accent-primary"
-              />
+            <label className="flex items-center gap-2.5 cursor-pointer">
               <span className="text-xs text-muted-foreground leading-relaxed">
-                I agree to the Terms of Service and Privacy Notice
+                By creating an account, I agree to the Terms of Service and Privacy Policy
               </span>
             </label>
 
@@ -245,26 +230,9 @@ const RegisterPage = () => {
         >
           Already have an account?{" "}
           <button onClick={() => navigate("/login")} className="text-primary font-medium hover:underline">
-            Login
+            Log in
           </button>
         </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          className="card-civic bg-primary/5 border-primary/15"
-        >
-          <p className="text-xs font-semibold text-foreground mb-3">Why register?</p>
-          <div className="flex flex-col gap-2.5">
-            {BENEFITS.map((b) => (
-              <div key={b.text} className="flex items-center gap-2.5">
-                <b.icon size={15} className="text-primary shrink-0" />
-                <span className="text-xs text-muted-foreground">{b.text}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
       </main>
     </div>
   );

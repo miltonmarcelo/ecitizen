@@ -30,17 +30,6 @@ const UserProfileDropdown = () => {
       })
     : "Not available";
 
-  // Format last login date and time.
-  const lastSignInTime = user?.metadata?.lastSignInTime
-    ? new Date(user.metadata.lastSignInTime).toLocaleString("en-IE", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "Not available";
-
   // Sign out from Firebase and send user back to home page.
   const handleSignOut = async () => {
     try {
@@ -94,9 +83,7 @@ const UserProfileDropdown = () => {
 
           <div className="p-3 space-y-3">
             <ProfileRow icon={Mail} label="Email" value={email} />
-            <ProfileRow icon={CalendarDays} label="Member Since" value={creationTime} />
-            <ProfileRow icon={CheckCircle} label="Account Status" value="Active" />
-            <ProfileRow icon={CalendarDays} label="Last Login" value={lastSignInTime} />
+            <ProfileRow icon={CalendarDays} label="Joined" value={creationTime} />
           </div>
 
           <DropdownMenuSeparator />

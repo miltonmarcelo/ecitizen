@@ -186,7 +186,6 @@ const HomePage = () => {
       <footer className="border-t border-border bg-card/50">
         <div className="max-w-lg mx-auto px-5 py-5 flex flex-col items-center gap-2">
           <div className="flex gap-6 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">About</a>
             <Link to="/contact" className="hover:text-foreground transition-colors">
               Contact
             </Link>

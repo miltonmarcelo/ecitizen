@@ -29,8 +29,8 @@ const DUPLICATES = [
 ];
 
 const LOCATION_MESSAGES = {
-  gpsReady: "Move the pin if needed, then confirm the location.",
-  pinUpdated: "Pin updated. Confirm the location when ready.",
+  gpsReady: "Adjust the pin if needed, then tap Confirm.",
+  pinUpdated: "Location updated. Confirm when ready.",
   confirmed: "Location confirmed.",
 };
 
@@ -110,7 +110,7 @@ const ReportIssuePage = () => {
         const fetchedCategories = Array.isArray(data.categories) ? data.categories : [];
         setCategories(fetchedCategories);
       } catch (err: any) {
-        setError(err.message || "Unable to load categories.");
+        setError(err.message || "Could not load categories. Please refresh and try again.");
       } finally {
         setCategoriesLoading(false);
       }
@@ -198,7 +198,7 @@ const ReportIssuePage = () => {
     const result = data?.results?.[0];
 
     if (!result) {
-      throw new Error("No address was found for the selected location.");
+      throw new Error("No address found for this location. Try adjusting the pin or enter your address manually.");
     }
 
     const houseNumber = result.housenumber ? `${result.housenumber} ` : "";
@@ -504,7 +504,7 @@ const ReportIssuePage = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to submit issue");
+        throw new Error(data.message || "Unable to submit your report. Please try again.");
       }
 
       navigate("/report-success", {
@@ -536,11 +536,10 @@ const ReportIssuePage = () => {
           custom={1}
           variants={fadeUp}
         >
-          <h3 className="section-title">Issue Details</h3>
 
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Issue Title
+              Title
             </label>
             <input
               className="input-civic"
@@ -606,7 +605,7 @@ const ReportIssuePage = () => {
           animate="visible"
           custom={2}
           variants={fadeUp}
-        >
+          >
           <h3 className="section-title">Location</h3>
 
           {(locationMode === "idle" || locationMode === "gps-select") && (
@@ -620,7 +619,7 @@ const ReportIssuePage = () => {
                 {locationLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Detecting location...
+                    Detecting your location...
                   </>
                 ) : (
                   <>
@@ -639,7 +638,7 @@ const ReportIssuePage = () => {
                     onClick={handleShowManualAddress}
                     className="text-sm text-primary hover:underline"
                   >
-                    Add address manually
+                    Enter address manually
                   </button>
                 </div>
               )}
@@ -652,14 +651,11 @@ const ReportIssuePage = () => {
                       longitude={longitude}
                       onLocationChange={handleMapLocationChange}
                     />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Drag the pin to the exact location if needed.
-                    </p>
                   </div>
                 ) : (
                   <div className="text-center">
                     <MapPin className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">Location preview</span>
+                    <span className="text-xs text-muted-foreground">Your location will appear here</span>
                   </div>
                 )}
               </div>
@@ -682,7 +678,7 @@ const ReportIssuePage = () => {
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Address 1
+                    Address
                   </label>
                   <input
                     className="input-civic"
@@ -694,11 +690,11 @@ const ReportIssuePage = () => {
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Address 2
+                    Address Line 2
                   </label>
                   <input
                     className="input-civic"
-                    placeholder="Apartment, building, or landmark optional"
+                    placeholder="Apartment, building, or landmark (optional)"
                     value={addressLine2}
                     onChange={(e) => setAddressLine2(e.target.value)}
                   />
@@ -800,59 +796,6 @@ const ReportIssuePage = () => {
                 {locationMessage}
               </p>
             )}
-        </motion.section>
-
-        <motion.section
-          className="card-civic space-y-3"
-          initial="hidden"
-          animate="visible"
-          custom={3}
-          variants={fadeUp}
-        >
-          <h3 className="section-title">Possible Duplicates</h3>
-          <p className="text-xs text-muted-foreground -mt-1">
-            Similar issues reported nearby
-          </p>
-
-          <div className="space-y-2.5">
-            {DUPLICATES.map((d) => (
-              <div key={d.id} className="duplicate-card">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-foreground truncate">
-                      {d.title}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{d.area}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <span
-                        className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getIssueStatusClass(d.status)}`}
-                      >
-                        {formatIssueStatus(d.status)}
-                      </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3" /> {d.supports}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
-                    >
-                      <ThumbsUp className="w-3 h-3" /> Support
-                    </button>
-                    <button
-                      type="button"
-                      className="text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
-                      <Eye className="w-3 h-3" /> View
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </motion.section>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
