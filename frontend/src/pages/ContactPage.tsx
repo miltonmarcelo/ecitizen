@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
 import ReCAPTCHA from "react-google-recaptcha";
-import TopBar from "@/components/TopBar";
+import CitizenLayout from "@/components/layout/CitizenLayout";
 
 type FormData = {
   name: string;
@@ -208,10 +208,8 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <TopBar showBack backTo="/" showProfile={false} />
-
-      <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
+    <CitizenLayout width="default" showBack backTo="/">
+      <div className="space-y-5">
         <motion.div {...fadeUp(0)}>
           <h2 className="text-xl font-bold text-foreground">Contact Us</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -321,8 +319,8 @@ const ContactPage = () => {
             </div>
           </form>
         </motion.div>
-      </main>
-    </div>
+      </div>
+    </CitizenLayout>
   );
 };
 

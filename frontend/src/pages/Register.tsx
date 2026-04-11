@@ -9,7 +9,9 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "@/firebase/firebase";
-import TopBar from "@/components/TopBar";
+import CitizenLayout from "@/components/layout/CitizenLayout";
+import PageHeader from "@/components/common/PageHeader";
+import SectionCard from "@/components/common/SectionCard";
 
 
 const RegisterPage = () => {
@@ -123,26 +125,27 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <TopBar showBack backTo="/" />
+    <CitizenLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-6"
+      >
+        <PageHeader
+          title="Create Account"
+          subtitle="Register to report and track issues"
+          className="mb-0"
+        />
+      </motion.div>
 
-      <main className="flex-1 px-5 py-8 max-w-lg mx-auto w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6"
-        >
-          <h1 className="text-2xl font-bold text-foreground mb-1">Create Account</h1>
-          <p className="text-sm text-muted-foreground">Register to report and track issues</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="card-civic mb-5"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+        className="mb-5"
+      >
+        <SectionCard>
           <form className="flex flex-col gap-4" onSubmit={handleRegister} autoComplete="on">
             <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">Full Name</label>
@@ -220,21 +223,21 @@ const RegisterPage = () => {
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
-        </motion.div>
+        </SectionCard>
+      </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="text-center text-sm text-muted-foreground mb-6"
-        >
-          Already have an account?{" "}
-          <button onClick={() => navigate("/login")} className="text-primary font-medium hover:underline">
-            Log in
-          </button>
-        </motion.p>
-      </main>
-    </div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25 }}
+        className="text-center text-sm text-muted-foreground mb-6"
+      >
+        Already have an account?{" "}
+        <button onClick={() => navigate("/login")} className="text-primary font-medium hover:underline">
+          Log in
+        </button>
+      </motion.p>
+    </CitizenLayout>
   );
 };
 

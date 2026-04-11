@@ -1,0 +1,20 @@
+@layer utilities {
+  .text-gradient-brand {
+    background: var(--brand-gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-brand {
+    background: var(--app-brand-gradient);
+  }
+
+  .surface-raised {
+    background: var(--app-surface-raised);
+  }
+
+  .surface-sunken {
+    background: var(--app-surface-sunken);
+  }
+}

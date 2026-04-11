@@ -117,9 +117,9 @@ const ReportSuccessPage = () => {
           >
             <CheckCircle className="w-16 h-16 text-primary mx-auto" strokeWidth={1.5} />
           </motion.div>
-          <h1 className="text-xl font-bold text-foreground">Report Submitted Successfully</h1>
+          <h1 className="text-xl font-bold text-foreground">Your report is in. Thank you.</h1>
           <p className="text-sm text-muted-foreground">
-            Your issue has been submitted and is now under review.
+            Thanks for helping improve your city. We'll keep you updated.
           </p>
         </motion.div>
 
@@ -130,7 +130,7 @@ const ReportSuccessPage = () => {
           custom={1}
           variants={fadeUp}
         >
-          <h3 className="section-title">Reference Details</h3>
+          <h3 className="section-title">Your report summary</h3>
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading report details...</p>
@@ -157,7 +157,7 @@ const ReportSuccessPage = () => {
               <div className="flex items-center gap-3">
                 <Tag className="w-4 h-4 text-primary shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Issue Title</p>
+                  <p className="text-xs text-muted-foreground">Title</p>
                   <p className="text-sm font-medium text-foreground">{issue.title}</p>
                 </div>
               </div>
@@ -169,7 +169,7 @@ const ReportSuccessPage = () => {
                   <span
                     className={`inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full mt-0.5 ${getIssueStatusClass(issue.status)}`}
                   >
-                    {issue.status === "CREATED" ? "Created" : formatIssueStatus(issue.status)}
+                    {issue.status === "CREATED" ? "Submitted" : formatIssueStatus(issue.status)}
                   </span>
                 </div>
               </div>
@@ -190,7 +190,7 @@ const ReportSuccessPage = () => {
           <ul className="space-y-2.5 text-sm text-muted-foreground">
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              Your report will be reviewed by the relevant department staff.
+              Our team will review your report and get to work.
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
@@ -203,7 +203,7 @@ const ReportSuccessPage = () => {
             </li>
             <li className="flex items-start gap-2.5">
               <ArrowRight className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              You may be contacted if more information is needed.
+              We may reach out if we need more details.
             </li>
           </ul>
         </motion.div>
@@ -228,7 +228,7 @@ const ReportSuccessPage = () => {
             className="btn-outline-civic flex-1 flex items-center justify-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
-            Report Another Issue
+            Submit another report
           </button>
         </motion.div>
       </main>

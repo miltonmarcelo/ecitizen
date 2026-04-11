@@ -7,6 +7,7 @@ type TopBarProps = {
   showBack?: boolean;
   backTo?: string;
   showProfile?: boolean;
+  width?: "narrow" | "default" | "wide";
 };
 
 const TopBar = ({
@@ -14,12 +15,19 @@ const TopBar = ({
   showBack = false,
   backTo = "/",
   showProfile = false,
+  width = "narrow",
 }: TopBarProps) => {
   const navigate = useNavigate();
+  const widthClass =
+    width === "wide"
+      ? "max-w-[1200px]"
+      : width === "default"
+      ? "max-w-[960px]"
+      : "max-w-[640px]";
 
   return (
     <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-lg mx-auto flex items-center justify-between px-4 h-14">
+      <div className={`${widthClass} mx-auto flex items-center justify-between px-6 h-14`}>
         <div className="flex items-center gap-3 min-w-0">
           {showBack && (
             <button
@@ -34,7 +42,8 @@ const TopBar = ({
           <span className="text-lg font-bold tracking-tight text-foreground">
             {title === "eCitizen" ? (
               <>
-                <span className="text-primary">e</span>Citizen
+                <span className="text-primary font-extrabold">e</span>
+                <span className="text-primary">Citizen</span>
               </>
             ) : (
               title

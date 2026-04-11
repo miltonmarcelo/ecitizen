@@ -15,7 +15,7 @@ import {
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
-import TopBar from "@/components/TopBar";
+import CitizenLayout from "@/components/layout/CitizenLayout";
 
 const AREA_ISSUES = [
   {
@@ -163,11 +163,8 @@ const AreaIssuesPage = () => {
   const hasActiveFilters = statusFilter !== "All" || categoryFilter !== "All" || search !== "";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top App Bar */}
-      <TopBar showBack backTo="/dashboard" showProfile />
-
-      <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
+    <CitizenLayout width="default" showBack backTo="/dashboard" showProfile>
+      <div className="space-y-5">
         {/* Area Summary */}
         <motion.div {...fadeUp(0)}>
           <div className="card-civic">
@@ -363,8 +360,8 @@ const AreaIssuesPage = () => {
             })
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </CitizenLayout>
   );
 };
 

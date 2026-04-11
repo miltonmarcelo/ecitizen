@@ -1,0 +1,306 @@
+:root {
+  --font-display: 'Cabinet Grotesk', 'Helvetica Neue', sans-serif;
+  --font-body:    'Satoshi', 'Inter', sans-serif;
+  --font-mono:    'Courier New', 'Menlo', monospace;
+}
+
+:root {
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem); /* 12–14px  tiny labels    */
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);     /* 14–16px  buttons / nav  */
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem); /* 16–18px  body default   */
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);   /* 18–24px  card headings  */
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);  /* 24–36px  page title     */
+  --text-2xl:  clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);   /* 32–56px  landing heroes */
+  --text-3xl:  clamp(2.5rem,   1rem    + 4vw,    5rem);     /* 40–80px  display/splash */
+}
+
+/* Usage guide
+   --text-xs    Satoshi 500    Badges, timestamps, tiny labels  (12px floor)
+   --text-sm    Satoshi 500    Buttons, nav links, form inputs
+   --text-base  Satoshi 400    Body copy, descriptions, paragraphs
+   --text-lg    Cabinet 700    Card headings, sidebar section titles
+   --text-xl    Cabinet 800    Page title  (ONE per page — web app max)
+   --text-2xl   Cabinet 800    Informational / landing heroes only
+   --text-3xl   Cabinet 800    Display / splash screens only
+*/
+
+:root {
+  --space-1:  0.25rem;  /*  4px */
+  --space-2:  0.5rem;   /*  8px */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.25rem;  /* 20px */
+  --space-6:  1.5rem;   /* 24px */
+  --space-8:  2rem;     /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+  --space-32: 8rem;     /* 128px */
+}
+
+:root {
+  --radius-none: 0;
+  --radius-xs:   0.25rem;   /*  4px — tight inputs, small chips     */
+  --radius-sm:   0.375rem;  /*  6px — default inputs, small cards   */
+  --radius-md:   0.5rem;    /*  8px — standard cards, modals        */
+  --radius-lg:   0.75rem;   /* 12px — large cards, panels           */
+  --radius-xl:   1rem;      /* 16px — hero cards, feature blocks    */
+  --radius-2xl:  1.5rem;    /* 24px — large hero panels             */
+  --radius-full: 9999px;    /* pill  — badges, avatars, toggles     */
+}
+
+:root {
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-fast:   120ms;
+  --duration-base:   180ms;
+  --duration-slow:   320ms;
+  --duration-slower: 500ms;
+
+  --transition-interactive: var(--duration-base) var(--ease-out);
+  --transition-fade:        var(--duration-base) var(--ease-in-out);
+  --transition-spring:      var(--duration-slow) var(--ease-spring);
+  --transition-slow:        var(--duration-slow) var(--ease-out);
+}
+
+:root {
+  --brand-purple: #5C3D90;   /* RGB 92 61 144  · CMYK 78% 85% 0% 0% */
+  --brand-blue:   #2674B2;   /* RGB 38 116 178 · CMYK 85% 51% 7% 0% */
+  --brand-teal:   #00D9A7;   /* RGB 0 217 167  · CMYK 66% 0% 50% 0% */
+  --brand-mint:   #00F5D4;   /* Gradient end — aqua highlight         */
+  --brand-violet: #7B2FF7;   /* Gradient start — electric violet      */
+
+  --brand-gradient:      linear-gradient(135deg, var(--brand-violet) 0%, var(--brand-purple) 25%, var(--brand-blue) 55%, var(--brand-teal) 80%, var(--brand-mint) 100%);
+  --brand-gradient-90:   linear-gradient(90deg,  var(--brand-violet) 0%, var(--brand-blue) 55%, var(--brand-mint) 100%);
+  --brand-gradient-text: linear-gradient(135deg, var(--brand-violet), var(--brand-teal));
+}
+
+:root {
+  /* Surfaces */
+  --color-bg:               #f8f9fb;
+  --color-surface:          #ffffff;
+  --color-surface-2:        #f3f4f8;
+  --color-surface-offset:   #eceef4;
+  --color-surface-dynamic:  #e4e6ee;
+  --color-divider:          #e2e4ee;
+  --color-border:           oklch(from #1a1a2e l c h / 0.10);
+  --color-border-strong:    oklch(from #1a1a2e l c h / 0.20);
+  --color-overlay:          oklch(from #1a1a2e l c h / 0.45);
+
+  /* Text */
+  --color-text:             #1a1a2e;   /* Primary — headings, body copy        */
+  --color-text-muted:       #64647a;   /* Secondary — subtitles, descriptions  */
+  --color-text-faint:       #a0a0b8;   /* Tertiary — timestamps, metadata      */
+  --color-text-inverse:     #ffffff;   /* On dark/brand backgrounds            */
+  --color-text-link:        #2674B2;   /* Hyperlinks, interactive text         */
+  --color-text-link-hover:  #1a5fa8;   /* Link hover state                     */
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px oklch(0.18 0.03 285 / 0.05);
+  --shadow-sm: 0 1px 3px oklch(0.18 0.03 285 / 0.07), 0 1px 2px oklch(0.18 0.03 285 / 0.05);
+  --shadow-md: 0 4px 12px oklch(0.18 0.03 285 / 0.09), 0 2px 4px oklch(0.18 0.03 285 / 0.06);
+  --shadow-lg: 0 12px 32px oklch(0.18 0.03 285 / 0.12), 0 4px 8px oklch(0.18 0.03 285 / 0.07);
+  --shadow-xl: 0 24px 64px oklch(0.18 0.03 285 / 0.16), 0 8px 16px oklch(0.18 0.03 285 / 0.08);
+  --shadow-brand: 0 8px 24px oklch(from var(--brand-violet) l c h / 0.25);
+}
+
+:root {
+  /* Created — Blue */
+  --status-created-bg:       #EBF4FF;
+  --status-created-text:     #1A5FA8;
+  --status-created-border:   #93C5FD;
+  --status-created-dot:      #2674B2;
+
+  /* Under Review — Amber */
+  --status-review-bg:        #FFFBEB;
+  --status-review-text:      #92400E;
+  --status-review-border:    #FCD34D;
+  --status-review-dot:       #D97706;
+
+  /* In Progress — Orange */
+  --status-progress-bg:      #FFF7ED;
+  --status-progress-text:    #9A3412;
+  --status-progress-border:  #FDBA74;
+  --status-progress-dot:     #EA580C;
+
+  /* Resolved — Emerald */
+  --status-resolved-bg:      #ECFDF5;
+  --status-resolved-text:    #065F46;
+  --status-resolved-border:  #6EE7B7;
+  --status-resolved-dot:     #059669;
+
+  /* Closed — Green */
+  --status-closed-bg:        #F0FDF4;
+  --status-closed-text:      #166534;
+  --status-closed-border:    #86EFAC;
+  --status-closed-dot:       #16A34A;
+
+  /* Cancelled — Red */
+  --status-cancelled-bg:     #FEF2F2;
+  --status-cancelled-text:   #991B1B;
+  --status-cancelled-border: #FCA5A5;
+  --status-cancelled-dot:    #DC2626;
+}
+
+
+:root {
+  /* Layout */
+  --app-bg:                  var(--color-bg);
+  --app-surface:             var(--color-surface);
+  --app-surface-raised:      var(--color-surface-2);
+  --app-surface-sunken:      var(--color-surface-offset);
+  --app-border:              var(--color-border);
+  --app-border-strong:       var(--color-border-strong);
+  --app-divider:             var(--color-divider);
+  --app-overlay:             var(--color-overlay);
+
+  /* Typography */
+  --app-font-heading:        var(--font-display);
+  --app-font-body:           var(--font-body);
+  --app-font-code:           var(--font-mono);
+
+  --app-text:                var(--color-text);
+  --app-text-secondary:      var(--color-text-muted);
+  --app-text-tertiary:       var(--color-text-faint);
+  --app-text-on-brand:       var(--color-text-inverse);
+  --app-text-link:           var(--color-text-link);
+  --app-text-link-hover:     var(--color-text-link-hover);
+
+  /* Brand */
+  --app-brand-primary:       var(--brand-purple);
+  --app-brand-secondary:     var(--brand-blue);
+  --app-brand-accent:        var(--brand-teal);
+  --app-brand-gradient:      var(--brand-gradient);
+
+  /* Buttons */
+  --app-btn-bg:              var(--brand-purple);
+  --app-btn-bg-hover:        color-mix(in oklab, var(--brand-purple) 85%, black);
+  --app-btn-text:            #ffffff;
+  --app-btn-radius:          var(--radius-md);
+  --app-btn-padding:         var(--space-3) var(--space-6);
+  --app-btn-font-size:       var(--text-sm);
+
+  /* Inputs */
+  --app-input-bg:            var(--color-surface);
+  --app-input-border:        var(--color-border-strong);
+  --app-input-border-focus:  var(--brand-blue);
+  --app-input-radius:        var(--radius-sm);
+  --app-input-padding:       var(--space-3) var(--space-4);
+  --app-input-font-size:     var(--text-sm);
+
+  /* Cards */
+  --app-card-bg:             var(--color-surface);
+  --app-card-border:         var(--color-border);
+  --app-card-radius:         var(--radius-xl);
+  --app-card-shadow:         var(--shadow-sm);
+  --app-card-padding:        var(--space-5);
+
+  /* Panels */
+  --app-panel-bg:            var(--color-surface-2);
+  --app-panel-radius:        var(--radius-lg);
+  --app-panel-padding:       var(--space-6);
+
+  /* Navigation */
+  --app-nav-bg:              var(--color-surface);
+  --app-nav-border:          var(--color-divider);
+  --app-nav-item-radius:     var(--radius-md);
+  --app-nav-item-active-bg:  color-mix(in oklab, var(--brand-purple) 10%, var(--color-surface));
+  --app-nav-item-active-text:var(--brand-purple);
+
+  /* Badges */
+  --app-badge-radius:        var(--radius-full);
+  --app-badge-padding:       var(--space-1) var(--space-3);
+  --app-badge-font-size:     var(--text-xs);
+
+  /* Focus ring */
+  --app-focus-ring:          0 0 0 3px color-mix(in oklab, var(--brand-blue) 35%, transparent);
+
+  /* Content widths */
+  --app-width-narrow:        640px;
+  --app-width-default:       960px;
+  --app-width-wide:          1200px;
+
+  /* Status shorthand */
+  --status-created:          var(--status-created-text);
+  --status-review:           var(--status-review-text);
+  --status-progress:         var(--status-progress-text);
+  --status-resolved:         var(--status-resolved-text);
+  --status-closed:           var(--status-closed-text);
+  --status-cancelled:        var(--status-cancelled-text);
+}
+
+
+/* ============================================================
+   USAGE QUICK-REFERENCE
+
+   FONTS
+     heading       font-family: var(--app-font-heading);
+     body / UI     font-family: var(--app-font-body);
+     code          font-family: var(--app-font-code);
+
+   TYPE SCALE
+     tiny label    font-size: var(--text-xs);
+     button / nav  font-size: var(--text-sm);
+     body copy     font-size: var(--text-base);
+     card heading  font-size: var(--text-lg);
+     page title    font-size: var(--text-xl);
+
+   SPACING
+     tight gap     gap: var(--space-2);
+     component     padding: var(--space-4);
+     section       padding: var(--space-12);
+
+   SURFACES
+     page bg       background: var(--app-bg);
+     card          background: var(--app-card-bg);
+     raised        background: var(--app-surface-raised);
+     border        border: 1px solid var(--app-border);
+
+   TEXT
+     primary       color: var(--app-text);
+     secondary     color: var(--app-text-secondary);
+     tertiary      color: var(--app-text-tertiary);
+     on brand bg   color: var(--app-text-on-brand);
+     link          color: var(--app-text-link);
+
+   BRAND
+     primary       var(--app-brand-primary)    #5C3D90
+     secondary     var(--app-brand-secondary)  #2674B2
+     accent        var(--app-brand-accent)     #00D9A7
+     gradient      background: var(--app-brand-gradient)
+
+   STATUS BADGE
+     .badge-created {
+       background:   var(--status-created-bg);
+       color:        var(--status-created-text);
+       border-color: var(--status-created-border);
+     }
+     .status-dot { background: var(--status-created-dot); }
+
+   SHADOWS
+     subtle        box-shadow: var(--shadow-sm);
+     card hover    box-shadow: var(--shadow-md);
+     modal         box-shadow: var(--shadow-lg);
+     brand glow    box-shadow: var(--shadow-brand);
+
+   RADIUS
+     input         border-radius: var(--radius-sm);
+     card          border-radius: var(--app-card-radius);
+     pill/badge    border-radius: var(--radius-full);
+
+   TRANSITIONS
+     hover/focus   transition: color var(--transition-interactive),
+                               background var(--transition-interactive);
+     modal enter   transition: opacity var(--transition-fade),
+                               transform var(--transition-spring);
+
+   FOCUS RING
+     :focus-visible {
+       outline: none;
+       box-shadow: var(--app-focus-ring);
+     }
+*/

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Menu, Plus, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -23,19 +23,6 @@ const MAP_PINS = [
   { bottom: "22%", left: "18%", color: "bg-success", label: "Flooding • Resolved" },
 ];
 
-const MINI_ISSUES = [
-  { status: "In Progress", statusClass: "bg-warning/15 text-warning", title: "Pothole on Pembroke Rd", votes: 12 },
-  { status: "Open", statusClass: "bg-primary/15 text-primary", title: "Broken light • Merrion Sq", votes: 8 },
-  { status: "Resolved", statusClass: "bg-success/15 text-success", title: "Graffiti • Leeson St", votes: 5 },
-];
-
-const MAP_MINI_PINS = [
-  { top: "19%", left: "14%", color: "bg-warning", label: "Lighting" },
-  { top: "44%", left: "44%", color: "bg-success", label: "Pothole ✓" },
-  { top: "27%", right: "13%", color: "bg-primary", label: "Graffiti" },
-  { bottom: "28%", left: "22%", color: "bg-destructive", label: "Dumping" },
-];
-
 const STEPS = [
   {
     num: 1,
@@ -49,21 +36,31 @@ const STEPS = [
   },
   {
     num: 3,
-    title: "Follow your report's progress",
+    title: "Follow the progress of your report",
     desc: "Follow the case status and timeline from submission through to completion.",
   },
 ];
 
 const ANIM_DELAYS = [0, -1.3, -2.7, -0.6, -3.2];
 
+type PublicStats = {
+  totalIssues: number;
+  resolutionRate: number;
+  averageCloseDays: number;
+};
+
+const INITIAL_STATS: PublicStats = {
+  totalIssues: 0,
+  resolutionRate: 0,
+  averageCloseDays: 0,
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [stats, setStats] = useState({
-    totalIssues: 0,
-    resolutionRate: 0,
-    averageCloseDays: 0,
-  });
+
+  const [stats, setStats] = useState<PublicStats>(INITIAL_STATS);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchPublicStats = async () => {
@@ -88,35 +85,50 @@ const HomePage = () => {
     fetchPublicStats();
   }, []);
 
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("en-IE").format(value);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 360px)");
+    const closeMenu = () => setMobileMenuOpen(false);
+
+    if (media.matches) closeMenu();
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) closeMenu();
+    };
+
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
+  const goTo = (path: string, closeMenu = false) => {
+    if (closeMenu) setMobileMenuOpen(false);
+    navigate(path);
   };
 
-  const formatPercentage = (value: number) => {
-    return `${Math.round(value)}%`;
-  };
-
-  const formatDays = (value: number) => {
-    return `${value.toFixed(1)}d`;
-  };
-
-  const handleReportClick = () => {
+  const goToReport = () => {
     if (loading) return;
     navigate(user ? "/report" : "/login");
   };
 
-  const handleBrowseClick = () => {
-    if (loading) return;
-    navigate(user ? "/area-issues" : "/login");
-  };
+  const formatNumber = (value: number) => new Intl.NumberFormat("en-IE").format(value);
+  const formatPercentage = (value: number) => `${Math.round(value)}%`;
+  const formatDays = (value: number) => `${Math.round(value)}d`;
+
+  const statCards = useMemo(
+    () => [
+      { value: formatNumber(stats.totalIssues), label: "Issues Reported" },
+      { value: formatPercentage(stats.resolutionRate), label: "Resolution Rate" },
+      { value: formatDays(stats.averageCloseDays), label: "Avg. Close Time" },
+    ],
+    [stats]
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-50 bg-card/94 backdrop-blur-2xl border-b border-border">
-        <div className="max-w-[480px] md:max-w-[900px] lg:max-w-[1100px] mx-auto flex items-center gap-3 px-5 md:px-8 lg:px-10 py-3">
+        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-2 px-4 sm:px-6">
           <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 font-extrabold text-lg text-primary shrink-0"
+            onClick={() => goTo("/")}
+            className="flex min-w-0 shrink items-center gap-2 sm:gap-3 font-extrabold text-lg text-primary"
           >
             <svg className="w-8 h-8" viewBox="0 0 36 36" fill="none">
               <rect width="36" height="36" rx="9" fill="hsl(var(--primary))" />
@@ -126,100 +138,128 @@ const HomePage = () => {
               />
               <circle cx="18" cy="16" r="4" fill="white" />
             </svg>
-            eCitizen
+            <span className="truncate text-base sm:text-lg">eCitizen</span>
           </button>
 
-          <div className="flex-1" />
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="hidden min-[360px]:flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => goTo("/login")}
+                className="inline-flex min-w-[96px] items-center justify-center rounded-lg border border-primary px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/5 sm:min-w-[110px] sm:px-4"
+              >
+                Log in
+              </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/login")}
-              className="hidden sm:inline-flex text-xs font-medium text-primary border border-primary px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors"
-            >
-              Log In
-            </button>
+              <button
+                onClick={() => goTo("/register")}
+                className="inline-flex min-w-[108px] items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-xs font-semibold text-accent-foreground transition-opacity hover:opacity-90 sm:min-w-[132px] sm:px-5"
+              >
+                Register
+              </button>
+            </div>
 
             <button
-              onClick={() => navigate("/register")}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-accent-foreground px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              type="button"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-muted min-[360px]:hidden"
             >
-              Register
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="min-[360px]:hidden border-t border-border bg-card">
+            <div className="mx-auto w-full max-w-[1200px] px-4 py-3">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => goTo("/login", true)}
+                  className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                >
+                  Log in
+                </button>
+
+                <button
+                  onClick={() => goTo("/register", true)}
+                  className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+                >
+                  Register
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">
-        <section className="relative overflow-hidden bg-card md:grid md:grid-cols-2 md:min-h-[600px]">
-          <div className="absolute inset-0 md:hidden bg-muted">
-            <img src={dublinMap} alt="" className="w-full h-full object-cover opacity-[0.18]" />
-          </div>
+        <section className="relative overflow-hidden bg-card">
+          <div className="mx-auto grid w-full max-w-[1200px] items-stretch gap-8 px-6 py-10 md:py-16 min-[860px]:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="order-1 flex flex-col justify-center"
+            >
+              <h1 className="mb-5 text-[clamp(2.75rem,1.4rem+5vw,5.5rem)] font-extrabold leading-[0.96] text-primary">
+                See it.
+                <br />
+                <span className="text-accent">Report it.</span>
+                <br />
+                Resolved.
+              </h1>
 
-          <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative z-10 flex flex-col justify-center px-5 md:px-8 lg:px-16 py-10 md:py-16"
-          >
-            <h1 className="text-[clamp(2.25rem,1rem+5.5vw,4rem)] font-extrabold text-primary leading-[1.08] mb-5">
-              See it.
-              <br />
-              <span className="text-accent">Report it.</span>
-              <br />
-              Resolved.
-            </h1>
+              <p className="text-base text-muted-foreground max-w-[42ch] leading-[1.7] mb-8">
+                Report potholes, broken lighting, graffiti and more. Track your cases and help improve your city through one clear platform.
+              </p>
 
-            <p className="text-base text-muted-foreground max-w-[42ch] leading-[1.7] mb-8">
-              Report potholes, broken lighting, graffiti and more. Track your cases and help improve your city through one clear platform.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleReportClick}
-                className="inline-flex items-center justify-center gap-2 font-semibold text-sm bg-accent text-accent-foreground rounded-lg px-6 py-3 min-h-[48px] max-w-[260px] w-full hover:opacity-90 active:scale-[0.97] transition-all"
-              >
-                <Plus size={17} /> Report New Issue
-              </button>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative overflow-hidden hidden md:block"
-          >
-            <img src={dublinMap} alt="Dublin city map" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/18 to-transparent" />
-
-            {MAP_PINS.map((pin, i) => (
-              <div
-                key={i}
-                className="absolute flex items-center gap-1.5 bg-card rounded-full px-3 py-1 shadow-md text-[11px] font-semibold whitespace-nowrap"
-                style={{
-                  top: pin.top,
-                  left: pin.left,
-                  right: pin.right,
-                  bottom: pin.bottom,
-                  animation: `pinFloat 4s ease-in-out infinite`,
-                  animationDelay: `${ANIM_DELAYS[i]}s`,
-                }}
-              >
-                <span className={`w-2 h-2 rounded-full ${pin.color}`} />
-                {pin.label}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={goToReport}
+                  className="inline-flex items-center justify-center gap-2 font-semibold text-sm bg-accent text-accent-foreground rounded-lg px-6 py-3 min-h-[48px] max-w-[260px] w-full hover:opacity-90 active:scale-[0.97] transition-all"
+                >
+                  <Plus size={17} /> Report New Issue
+                </button>
               </div>
-            ))}
-          </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="order-2 relative h-[320px] overflow-hidden rounded-[24px] border border-border bg-muted sm:h-[380px] min-[860px]:h-full min-[860px]:min-h-[560px] lg:min-h-[720px]"
+            >
+              <img src={dublinMap} alt="Dublin city map" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/18 to-transparent" />
+
+              {MAP_PINS.map((pin, i) => (
+                <div
+                  key={i}
+                  className={`absolute items-center gap-1.5 whitespace-nowrap rounded-full bg-card px-3 py-1 text-[11px] font-semibold shadow-md ${
+                    i > 1 ? "hidden sm:flex" : "flex"
+                  }`}
+                  style={{
+                    top: pin.top,
+                    left: pin.left,
+                    right: pin.right,
+                    bottom: pin.bottom,
+                    animation: "pinFloat 4s ease-in-out infinite",
+                    animationDelay: `${ANIM_DELAYS[i]}s`,
+                  }}
+                >
+                  <span className={`h-2 w-2 rounded-full ${pin.color}`} />
+                  {pin.label}
+                </div>
+              ))}
+            </motion.div>
+          </div>
         </section>
 
         <div className="bg-primary py-5 md:py-8">
-          <div className="max-w-[480px] md:max-w-[900px] lg:max-w-[1100px] mx-auto px-5 md:px-8">
+          <div className="mx-auto w-full max-w-[1200px] px-6">
             <div className="grid grid-cols-3 gap-2 text-center">
-              {[
-                { value: formatNumber(stats.totalIssues), label: "Issues Reported" },
-                { value: formatPercentage(stats.resolutionRate), label: "Resolution Rate" },
-                { value: formatDays(stats.averageCloseDays), label: "Avg. Close Time" },
-              ].map((stat) => (
+              {statCards.map((stat) => (
                 <div key={stat.label}>
                   <span className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary-foreground leading-none block">
                     {stat.value}
@@ -234,7 +274,7 @@ const HomePage = () => {
         </div>
 
         <section className="bg-secondary/30 py-12 md:py-20">
-          <div className="max-w-[480px] md:max-w-[900px] lg:max-w-[1100px] mx-auto px-5 md:px-8">
+          <div className="mx-auto w-full max-w-[1200px] px-6">
             <div className="mb-8 md:mb-12">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-accent mb-3">How It Works</p>
               <h2 className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary leading-[1.1] mb-4">
@@ -247,7 +287,7 @@ const HomePage = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {STEPS.map((step, i) => (
                 <motion.div
                   key={step.num}
@@ -256,7 +296,9 @@ const HomePage = () => {
                   whileInView="visible"
                   viewport={{ once: true, amount: 0.3 }}
                   variants={fadeUp}
-                  className="bg-card rounded-xl p-6 border border-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-[0.98]"
+                  className={`bg-card rounded-xl border border-border p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
+                    step.num === 3 ? "md:col-span-2" : ""
+                  }`}
                 >
                   <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground font-extrabold text-lg flex items-center justify-center mb-5 shadow-sm">
                     {step.num}
@@ -270,29 +312,31 @@ const HomePage = () => {
         </section>
 
         <section className="py-16 md:py-20 bg-gradient-to-br from-primary via-[hsl(210,50%,22%)] to-accent text-center">
-          <div className="max-w-[600px] mx-auto px-5 md:px-8">
-            <h2 className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary-foreground mb-4">
-              Ready to make a difference?
-            </h2>
+          <div className="mx-auto w-full max-w-[1200px] px-6">
+            <div className="mx-auto max-w-[600px] text-center">
+              <h2 className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary-foreground mb-4">
+                Ready to make a difference?
+              </h2>
 
-            <p className="text-base text-primary-foreground/75 max-w-[42ch] mx-auto mb-8">
-              It takes less than a minute to report an issue. Your city is listening.
-            </p>
+              <p className="text-base text-primary-foreground/75 max-w-[42ch] mx-auto mb-8">
+                It takes less than a minute to report an issue. Your city is listening.
+              </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                onClick={handleReportClick}
-                className="inline-flex items-center justify-center gap-2 font-bold text-sm bg-card text-primary rounded-lg px-6 py-3 min-h-[48px] max-w-[240px] w-full hover:bg-card/90 shadow-lg active:scale-[0.97] transition-all"
-              >
-                <Plus size={17} /> Get Started
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={goToReport}
+                  className="inline-flex items-center justify-center gap-2 font-bold text-sm bg-card text-primary rounded-lg px-6 py-3 min-h-[48px] max-w-[240px] w-full hover:bg-card/90 shadow-lg active:scale-[0.97] transition-all"
+                >
+                  <Plus size={17} /> Get Started
+                </button>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
       <footer className="bg-card border-t border-border py-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
-        <div className="max-w-[480px] md:max-w-[900px] lg:max-w-[1100px] mx-auto px-5 md:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-4 flex-wrap">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 px-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
           <div className="flex items-center gap-2 font-extrabold text-primary">
             <svg className="w-[26px] h-[26px]" viewBox="0 0 36 36" fill="none">
               <rect width="36" height="36" rx="9" fill="hsl(var(--primary))" />
@@ -306,10 +350,16 @@ const HomePage = () => {
           </div>
 
           <nav className="flex gap-5 flex-wrap">
-            <button onClick={handleReportClick} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={goToReport}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Report New Issue
             </button>
-            <button onClick={() => navigate("/contact")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={() => goTo("/contact")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Contact Us
             </button>
           </nav>

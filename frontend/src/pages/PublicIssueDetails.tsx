@@ -15,7 +15,7 @@ import {
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import TopBar from "@/components/TopBar";
+import CitizenLayout from "@/components/layout/CitizenLayout";
 
 const ISSUES_DATA: Record<string, {
   id: string; title: string; category: string; status: string; statusColor: string;
@@ -105,10 +105,8 @@ const PublicIssueDetailsPage = () => {
   const supportCount = issue.supporters + (supported ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <TopBar showBack backTo="/dashboard" showProfile />
-
-      <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full space-y-5">
+    <CitizenLayout width="default" showBack backTo="/dashboard" showProfile>
+      <div className="space-y-5">
         {/* Header Card */}
         <motion.div {...fadeUp(0)} className="card-civic space-y-3">
           <h2 className="text-base font-bold text-foreground">{issue.title}</h2>
@@ -231,8 +229,8 @@ const PublicIssueDetailsPage = () => {
             Report Another Issue <ArrowRight size={14} />
           </button>
         </motion.div>
-      </main>
-    </div>
+      </div>
+    </CitizenLayout>
   );
 };
 
