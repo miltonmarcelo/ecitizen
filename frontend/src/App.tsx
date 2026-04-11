@@ -10,33 +10,32 @@ import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import StaffRoute from "@/components/StaffRoute";
 import AdminRoute from "@/components/AdminRoute";
 
-import Index from "./pages/Index";
-import LoginPage from "./pages/Login";
-import RegisterPage from "./pages/Register";
-import DashboardPage from "./pages/CitizenDashboard";
-import ReportIssuePage from "./pages/ReportIssue";
-import ReportSuccessPage from "./pages/ReportSuccess";
-import MyReportsPage from "./pages/MyReports";
-import IssueDetailsPage from "./pages/IssueDetails";
-import ProfilePage from "./pages/Profile";
-import AreaIssuesPage from "./pages/AreaIssues";
-import PublicIssueDetailsPage from "./pages/PublicIssueDetails";
-import ChangePasswordPage from "./pages/ChangePassword";
-import ContactPage from "./pages/ContactPage";
-import ForgotPasswordPage from "./pages/ForgotPassword";
-import ForgotPasswordConfirmationPage from "./pages/ForgotPasswordConfirmation";
-import NotFound from "./pages/NotFound";
+import Index from "./pages/public/Index";
+import LoginPage from "./pages/auth/Login";
+import RegisterPage from "./pages/auth/Register";
+import DashboardPage from "./pages/citizen/CitizenDashboard";
+import ReportIssuePage from "./pages/citizen/ReportIssue";
+import ReportSuccessPage from "./pages/citizen/ReportSuccess";
+import MyReportsPage from "./pages/citizen/MyReports";
+import IssueDetailsPage from "./pages/citizen/IssueDetails";
+import AreaIssuesPage from "./pages/citizen/AreaIssues";
+import PublicIssueDetailsPage from "./pages/citizen/PublicIssueDetails";
+import ChangePasswordPage from "./pages/auth/ChangePassword";
+import ContactPage from "./pages/public/ContactPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPassword";
+import ForgotPasswordConfirmationPage from "./pages/auth/ForgotPasswordConfirmation";
+import NotFound from "./pages/public/NotFound";
 
-import StaffDashboard from "./pages/StaffDashboard";
-import StaffAllReports from "./pages/StaffAllReports";
-import StaffIssueDetails from "./pages/StaffIssueDetails";
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffAllReports from "./pages/staff/StaffAllReports";
+import StaffIssueDetails from "./pages/staff/StaffIssueDetails";
 
-import AdminPanel from "./pages/AdminPanel";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUsers from "./pages/AdminUsers";
-import AdminStaff from "./pages/AdminStaff";
-import AdminCategories from "./pages/AdminCategories";
-import AdminDatabase from "./pages/AdminDatabase";
+import AdminPanel from "./pages/admin/AdminPanel";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminStaff from "./pages/admin/AdminStaff";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminDatabase from "./pages/admin/AdminDatabase";
 
 const queryClient = new QueryClient();
 
@@ -127,15 +126,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <IssueDetailsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
