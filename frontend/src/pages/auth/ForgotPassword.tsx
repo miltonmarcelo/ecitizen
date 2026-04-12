@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Mail, Info } from "lucide-react";
+import { Mail, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/firebase/firebase";
+import CitizenLayout from "@/components/layout/CitizenLayout";
+import PageHeader from "@/components/common/PageHeader";
+import SectionCard from "@/components/common/SectionCard";
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -65,112 +68,98 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-lg mx-auto flex items-center justify-between px-4 h-14">
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            <span className="text-primary">e</span>Citizen
-          </span>
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft size={14} /> Back to Login
-          </button>
-        </div>
-      </header>
+    <CitizenLayout showBack backTo="/">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="login-page__header"
+      >
+        <PageHeader
+          title="Reset Password"
+          subtitle="Enter your email to receive a reset link"
+          className="mb-0"
+        />
+      </motion.div>
 
-      <main className="flex-1 px-5 py-8 max-w-lg mx-auto w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6"
-        >
-          <h1 className="text-2xl font-bold text-foreground mb-1">Reset Password</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your email to receive a reset link
-          </p>
-        </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+        className="login-page__card-wrap"
+      >
+        <SectionCard>
+          <form className="form-stack" onSubmit={handleSubmit}>
+            <div className="field-stack">
+              <label className="label-text login-page__label">Email</label>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="card-civic mb-5"
-        >
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">
-                Email
-              </label>
-              <div className="relative">
+              <div className="login-page__password-wrap">
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  className="input-civic pr-10"
+                  className="app-input app-input--with-icon"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                   required
                 />
-                <Mail
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
+                <Mail size={16} className="auth-page__field-icon" />
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error ? <p className="login-page__error">{error}</p> : null}
 
             <button
               type="submit"
-              className="btn-primary-civic w-full"
+              className="app-btn app-btn--primary login-page__submit"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Sending..." : "Send Reset Link"}
             </button>
           </form>
-        </motion.div>
+        </SectionCard>
+      </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="card-civic bg-primary/5 border-primary/15 mb-5"
-        >
-          <div className="flex items-start gap-2.5">
-            <Info size={16} className="text-primary shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+        className="auth-page__info-card"
+      >
+        <div className="issue-notice issue-notice--primary card-body">
+          <div className="issue-notice__content auth-page__info-row">
+            <Info size={16} className="auth-page__info-icon" />
+            <p className="helper-text auth-page__info-text">
               If an account exists for this email address, a password reset link will be sent.
             </p>
           </div>
-        </motion.div>
+        </div>
+      </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-xs text-muted-foreground mb-6"
-        >
-          Please make sure you enter the email linked to your account.
-        </motion.p>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="auth-page__helper-note"
+      >
+        Please make sure you enter the email linked to your account.
+      </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="text-center"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+        className="auth-page__actions-center"
+      >
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="login-page__text-link login-page__text-link--strong auth-page__inline-back"
         >
-          <button
-            onClick={() => navigate("/login")}
-            className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={14} /> Back to Login
-          </button>
-        </motion.div>
-      </main>
-    </div>
+          <span>Back to Login</span>
+        </button>
+      </motion.div>
+    </CitizenLayout>
   );
 };
 

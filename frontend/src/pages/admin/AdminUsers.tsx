@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MoreHorizontal,
   X,
@@ -52,18 +52,29 @@ import type { Role } from "@/types/domain";
 import { Input } from "@/components/ui/input";
 
 const roleOptions: Role[] = ["ADMIN", "STAFF", "CITIZEN"];
+const pageSizeOptions = [5, 10, 20, 50] as const;
 
 type SortKey = keyof AdminUser;
 type SortDir = "asc" | "desc";
+type ConfirmAction = { user: AdminUser; action: "enable" | "disable" } | null;
+
+const columns: { key: SortKey; label: string }[] = [
+  { key: "id", label: "User ID" },
+  { key: "fullName", label: "Full Name" },
+  { key: "email", label: "Email" },
+  { key: "role", label: "Role" },
+  { key: "isActive", label: "Status" },
+  { key: "createdAt", label: "Created" },
+  { key: "updatedAt", label: "Updated" },
+];
 
 function roleLabel(role: Role) {
-  if (role === "ADMIN") return "Admin";
-  if (role === "STAFF") return "Staff";
-  return "Citizen";
+  return role === "ADMIN" ? "Admin" : role === "STAFF" ? "Staff" : "Citizen";
 }
 
 export default function AdminUsers() {
   const { user, loading: authLoading } = useAuth();
+
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -78,40 +89,38 @@ export default function AdminUsers() {
 
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [editName, setEditName] = useState("");
-  const [confirmAction, setConfirmAction] = useState<{
-    user: AdminUser;
-    action: "enable" | "disable";
-  } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+
+  const loadUsers = useCallback(async () => {
+    if (!user) {
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const data = await adminFetch<{ users: AdminUser[] }>(user, "/api/admin/users");
+      setUsers(data.users || []);
+    } catch (err: any) {
+      setError(err.message || "Unable to load users.");
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const loadUsers = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    if (!authLoading) loadUsers();
+  }, [authLoading, loadUsers]);
 
-      try {
-        setLoading(true);
-        setError("");
-        const data = await adminFetch<{ users: AdminUser[] }>(user, "/api/admin/users");
-        setUsers(data.users || []);
-      } catch (err: any) {
-        setError(err.message || "Unable to load users.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!authLoading) {
-      loadUsers();
-    }
-  }, [authLoading, user]);
-
-  const hasFilters = search || roleFilter !== "all" || statusFilter !== "all";
+  const hasFilters = Boolean(search.trim()) || roleFilter !== "all" || statusFilter !== "all";
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const data = [...users]
+
+    return [...users]
       .filter((item) => {
         const matchesSearch =
           !q ||
@@ -125,38 +134,47 @@ export default function AdminUsers() {
 
         return matchesSearch && matchesRole && matchesStatus;
       })
-      .sort((first, second) => {
-        const result = compareValues(first[sortKey], second[sortKey]);
-        return sortDir === "asc" ? result : result * -1;
+      .sort((a, b) => {
+        const result = compareValues(a[sortKey], b[sortKey]);
+        return sortDir === "asc" ? result : -result;
       });
-
-    return data;
-  }, [roleFilter, search, sortDir, sortKey, statusFilter, users]);
+  }, [users, search, roleFilter, statusFilter, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * perPage, page * perPage),
+    [filtered, page, perPage]
+  );
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((current) => (current === "asc" ? "desc" : "asc"));
-      return;
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
     }
-
-    setSortKey(key);
-    setSortDir("asc");
   };
 
-  const sortIndicator = (key: SortKey) => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
-  const updateUser = async (userId: number, payload: Partial<Pick<AdminUser, "fullName" | "role" | "isActive">>) => {
+  const updateUser = async (
+    userId: number,
+    payload: Partial<Pick<AdminUser, "fullName" | "role" | "isActive">>
+  ) => {
     if (!user) return;
 
     try {
       setSaving((current) => ({ ...current, [userId]: true }));
-      const data = await adminFetch<{ user: AdminUser; message: string }>(user, `/api/admin/users/${userId}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+
+      const data = await adminFetch<{ user: AdminUser; message: string }>(
+        user,
+        `/api/admin/users/${userId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
 
       setUsers((current) => current.map((item) => (item.id === userId ? data.user : item)));
       toast.success(data.message || "User updated successfully");
@@ -179,22 +197,31 @@ export default function AdminUsers() {
 
   const handleConfirmAction = async () => {
     if (!confirmAction) return;
-    await updateUser(confirmAction.user.id, { isActive: confirmAction.action === "enable" });
+    await updateUser(confirmAction.user.id, {
+      isActive: confirmAction.action === "enable",
+    });
     setConfirmAction(null);
+  };
+
+  const resetFilters = () => {
+    setSearch("");
+    setRoleFilter("all");
+    setStatusFilter("all");
+    setPage(1);
   };
 
   if (loading) {
     return (
       <AdminLayout
-      pageTitle="Users"
-      breadcrumb="Users"
-      searchValue={search}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
-      searchPlaceholder="Search by name, email, or ID..."
-    >
+        pageTitle="Users"
+        breadcrumb="Users"
+        searchValue={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="Search by name, email, or ID..."
+      >
         <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
           Loading users...
         </div>
@@ -214,15 +241,19 @@ export default function AdminUsers() {
       searchPlaceholder="Search by name, email, or ID..."
     >
       <div className="mb-4">
-        <h2 className="text-lg font-heading font-semibold text-foreground">Users Management</h2>
-        <p className="text-sm text-muted-foreground">View and manage all user accounts in the system</p>
+        <h2 className="text-lg font-heading font-semibold text-foreground">
+          Users Management
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          View and manage all user accounts in the system
+        </p>
       </div>
 
-      {error ? (
+      {error && (
         <Card className="border-destructive/30 bg-destructive/5 mb-4">
           <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
         </Card>
-      ) : null}
+      )}
 
       <Card className="shadow-sm mb-4">
         <CardContent className="p-3 flex flex-wrap items-center gap-3">
@@ -263,20 +294,11 @@ export default function AdminUsers() {
             </SelectContent>
           </Select>
 
-          {hasFilters ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setRoleFilter("all");
-                setStatusFilter("all");
-                setPage(1);
-              }}
-            >
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="w-3.5 h-3.5 mr-1" /> Clear
             </Button>
-          ) : null}
+          )}
 
           <Badge variant="secondary" className="ml-auto text-xs">
             {filtered.length} users
@@ -288,13 +310,16 @@ export default function AdminUsers() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("id")}>User ID{sortIndicator("id")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("fullName")}>Full Name{sortIndicator("fullName")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("email")}>Email{sortIndicator("email")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("role")}>Role{sortIndicator("role")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("isActive")}>Status{sortIndicator("isActive")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("createdAt")}>Created{sortIndicator("createdAt")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("updatedAt")}>Updated{sortIndicator("updatedAt")}</TableHead>
+              {columns.map((column) => (
+                <TableHead
+                  key={column.key}
+                  className="cursor-pointer select-none"
+                  onClick={() => toggleSort(column.key)}
+                >
+                  {column.label}
+                  {sortIndicator(column.key)}
+                </TableHead>
+              ))}
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -302,7 +327,7 @@ export default function AdminUsers() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={columns.length + 1} className="text-center py-10 text-muted-foreground">
                   No users found
                 </TableCell>
               </TableRow>
@@ -313,7 +338,10 @@ export default function AdminUsers() {
                   <TableCell className="font-medium">{row.fullName}</TableCell>
                   <TableCell className="text-sm">{row.email}</TableCell>
                   <TableCell>
-                    <Badge variant={row.role === "ADMIN" ? "default" : "secondary"} className="text-xs">
+                    <Badge
+                      variant={row.role === "ADMIN" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
                       {roleLabel(row.role)}
                     </Badge>
                   </TableCell>
@@ -334,6 +362,7 @@ export default function AdminUsers() {
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
+
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => {
@@ -343,6 +372,7 @@ export default function AdminUsers() {
                         >
                           Edit Name
                         </DropdownMenuItem>
+
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>Change Role</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
@@ -357,7 +387,9 @@ export default function AdminUsers() {
                             ))}
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+
                         <DropdownMenuSeparator />
+
                         {row.isActive ? (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -367,7 +399,10 @@ export default function AdminUsers() {
                             Disable User
                           </DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem disabled={saving[row.id]} onClick={() => setConfirmAction({ user: row, action: "enable" })}>
+                          <DropdownMenuItem
+                            disabled={saving[row.id]}
+                            onClick={() => setConfirmAction({ user: row, action: "enable" })}
+                          >
                             Enable User
                           </DropdownMenuItem>
                         )}
@@ -394,7 +429,7 @@ export default function AdminUsers() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[5, 10, 20, 50].map((size) => (
+                {pageSizeOptions.map((size) => (
                   <SelectItem key={size} value={String(size)}>
                     {size}
                   </SelectItem>
@@ -402,12 +437,27 @@ export default function AdminUsers() {
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => setPage((current) => current + 1)}
+            >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -418,19 +468,30 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit User Name</DialogTitle>
-            <DialogDescription>Update the name for user ID {editUser?.id}</DialogDescription>
+            <DialogDescription>
+              Update the name for user ID {editUser?.id}
+            </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3 py-2">
             <div>
               <Label>Full Name</Label>
-              <Input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1" />
+              <Input
+                value={editName}
+                onChange={(event) => setEditName(event.target.value)}
+                className="mt-1"
+              />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditUser(null)}>
               Cancel
             </Button>
-            <Button onClick={handleEditSave} disabled={!editName.trim() || (editUser ? saving[editUser.id] : false)}>
+            <Button
+              onClick={handleEditSave}
+              disabled={!editName.trim() || (editUser ? saving[editUser.id] : false)}
+            >
               Save Changes
             </Button>
           </DialogFooter>
@@ -440,11 +501,15 @@ export default function AdminUsers() {
       <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirmAction?.action === "disable" ? "Disable User" : "Enable User"}</DialogTitle>
+            <DialogTitle>
+              {confirmAction?.action === "disable" ? "Disable User" : "Enable User"}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to {confirmAction?.action} <strong>{confirmAction?.user.fullName}</strong>?
+              Are you sure you want to {confirmAction?.action}{" "}
+              <strong>{confirmAction?.user.fullName}</strong>?
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmAction(null)}>
               Cancel

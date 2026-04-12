@@ -17,11 +17,11 @@ const fadeUp = {
 };
 
 const MAP_PINS = [
-  { top: "18%", left: "10%", color: "bg-success", label: "Pothole • Resolved" },
-  { top: "42%", left: "28%", color: "bg-warning", label: "Street Light • In Progress" },
-  { top: "25%", right: "14%", color: "bg-primary", label: "Graffiti • Open" },
-  { bottom: "32%", right: "10%", color: "bg-destructive", label: "Dumping • Open" },
-  { bottom: "22%", left: "18%", color: "bg-success", label: "Flooding • Resolved" },
+  { top: "18%", left: "10%", colorClass: "home-page__pin-dot--success", label: "Pothole • Resolved" },
+  { top: "42%", left: "28%", colorClass: "home-page__pin-dot--warning", label: "Street Light • In Progress" },
+  { top: "25%", right: "14%", colorClass: "home-page__pin-dot--primary", label: "Graffiti • Open" },
+  { bottom: "32%", right: "10%", colorClass: "home-page__pin-dot--danger", label: "Dumping • Open" },
+  { bottom: "22%", left: "18%", colorClass: "home-page__pin-dot--success", label: "Flooding • Resolved" },
 ];
 
 const STEPS = [
@@ -124,28 +124,25 @@ const HomePage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-50 bg-card/94 backdrop-blur-2xl border-b border-border">
-        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-2 px-4 sm:px-6">
-          <button
-            onClick={() => goTo("/")}
-            className="flex min-w-0 shrink items-center gap-2 sm:gap-3 font-extrabold text-lg text-primary"
-          >
+    <div className="home-page">
+      <header className="home-page__header">
+        <div className="home-page__header-inner">
+          <button onClick={() => goTo("/")} className="home-page__brand-button">
             <BrandLogo size="md" showText={true} />
           </button>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <div className="hidden min-[360px]:flex items-center gap-2 sm:gap-3">
+          <div className="home-page__header-actions">
+            <div className="home-page__desktop-actions">
               <button
                 onClick={() => goTo("/login")}
-                className="inline-flex min-w-[96px] items-center justify-center rounded-lg border border-primary px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/5 sm:min-w-[110px] sm:px-4"
+                className="home-page__nav-btn home-page__nav-btn--secondary"
               >
                 Log in
               </button>
 
               <button
                 onClick={() => goTo("/register")}
-                className="inline-flex min-w-[108px] items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-xs font-semibold text-accent-foreground transition-opacity hover:opacity-90 sm:min-w-[132px] sm:px-5"
+                className="home-page__nav-btn home-page__nav-btn--accent"
               >
                 Register
               </button>
@@ -156,7 +153,7 @@ const HomePage = () => {
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-muted min-[360px]:hidden"
+              className="home-page__menu-toggle"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -164,19 +161,19 @@ const HomePage = () => {
         </div>
 
         {mobileMenuOpen && (
-          <div className="min-[360px]:hidden border-t border-border bg-card">
-            <div className="mx-auto w-full max-w-[1200px] px-4 py-3">
-              <div className="flex flex-col gap-2">
+          <div className="home-page__mobile-menu">
+            <div className="home-page__mobile-menu-inner">
+              <div className="home-page__mobile-menu-actions">
                 <button
                   onClick={() => goTo("/login", true)}
-                  className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                  className="home-page__mobile-btn home-page__mobile-btn--secondary"
                 >
                   Log in
                 </button>
 
                 <button
                   onClick={() => goTo("/register", true)}
-                  className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+                  className="home-page__mobile-btn home-page__mobile-btn--accent"
                 >
                   Register
                 </button>
@@ -186,33 +183,31 @@ const HomePage = () => {
         )}
       </header>
 
-      <main className="flex-1">
-        <section className="relative overflow-hidden bg-card">
-          <div className="mx-auto grid w-full max-w-[1200px] items-stretch gap-8 px-6 py-10 md:py-16 min-[860px]:grid-cols-2">
+      <main className="home-page__main">
+        <section className="home-page__hero">
+          <div className="home-page__hero-grid">
             <motion.div
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="order-1 flex flex-col justify-center"
+              className="home-page__hero-copy"
             >
-              <h1 className="mb-5 text-[clamp(2.75rem,1.4rem+5vw,5.5rem)] font-extrabold leading-[0.96] text-primary">
+              <h1 className="home-page__hero-title">
                 See it.
                 <br />
-                <span className="text-accent">Report it.</span>
+                <span className="home-page__hero-title-accent">Report it.</span>
                 <br />
                 Resolved.
               </h1>
 
-              <p className="text-base text-muted-foreground max-w-[42ch] leading-[1.7] mb-8">
+              <p className="home-page__hero-text">
                 Report potholes, broken lighting, graffiti and more. Track your cases and help improve your city through one clear platform.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={goToReport}
-                  className="inline-flex items-center justify-center gap-2 font-semibold text-sm bg-accent text-accent-foreground rounded-lg px-6 py-3 min-h-[48px] max-w-[260px] w-full hover:opacity-90 active:scale-[0.97] transition-all"
-                >
-                  <Plus size={17} /> Report New Issue
+              <div className="home-page__hero-actions">
+                <button onClick={goToReport} className="home-page__cta-btn">
+                  <Plus size={17} />
+                  <span>Report New Issue</span>
                 </button>
               </div>
             </motion.div>
@@ -221,27 +216,24 @@ const HomePage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="order-2 relative h-[320px] overflow-hidden rounded-[24px] border border-border bg-muted sm:h-[380px] min-[860px]:h-full min-[860px]:min-h-[560px] lg:min-h-[720px]"
+              className="home-page__hero-map"
             >
-              <img src={dublinMap} alt="Dublin city map" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/18 to-transparent" />
+              <img src={dublinMap} alt="Dublin city map" className="home-page__hero-map-image" />
+              <div className="home-page__hero-map-overlay" />
 
               {MAP_PINS.map((pin, i) => (
                 <div
                   key={i}
-                  className={`absolute items-center gap-1.5 whitespace-nowrap rounded-full bg-card px-3 py-1 text-[11px] font-semibold shadow-md ${
-                    i > 1 ? "hidden sm:flex" : "flex"
-                  }`}
+                  className={`home-page__map-pin ${i > 1 ? "home-page__map-pin--desktop-only" : ""}`}
                   style={{
                     top: pin.top,
                     left: pin.left,
                     right: pin.right,
                     bottom: pin.bottom,
-                    animation: "pinFloat 4s ease-in-out infinite",
                     animationDelay: `${ANIM_DELAYS[i]}s`,
                   }}
                 >
-                  <span className={`h-2 w-2 rounded-full ${pin.color}`} />
+                  <span className={`home-page__pin-dot ${pin.colorClass}`} />
                   {pin.label}
                 </div>
               ))}
@@ -249,38 +241,34 @@ const HomePage = () => {
           </div>
         </section>
 
-        <div className="bg-primary py-5 md:py-8">
-          <div className="mx-auto w-full max-w-[1200px] px-6">
-            <div className="grid grid-cols-3 gap-2 text-center">
+        <section className="home-page__stats-bar">
+          <div className="home-page__stats-inner">
+            <div className="home-page__stats-grid">
               {statCards.map((stat) => (
-                <div key={stat.label}>
-                  <span className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary-foreground leading-none block">
-                    {stat.value}
-                  </span>
-                  <span className="text-[clamp(0.75rem,0.7rem+0.25vw,0.8125rem)] text-primary-foreground/65 mt-1 font-medium tracking-wide block">
-                    {stat.label}
-                  </span>
+                <div key={stat.label} className="home-page__stat-item">
+                  <span className="home-page__stat-value">{stat.value}</span>
+                  <span className="home-page__stat-label">{stat.label}</span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        <section className="bg-secondary/30 py-12 md:py-20">
-          <div className="mx-auto w-full max-w-[1200px] px-6">
-            <div className="mb-8 md:mb-12">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-accent mb-3">How It Works</p>
-              <h2 className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary leading-[1.1] mb-4">
+        <section className="home-page__steps-section">
+          <div className="home-page__section-inner">
+            <div className="home-page__section-copy">
+              <p className="home-page__section-kicker">How It Works</p>
+              <h2 className="home-page__section-title">
                 From report to resolution,
                 <br />
                 every step is clear.
               </h2>
-              <p className="text-base text-muted-foreground leading-[1.7] max-w-[48ch]">
+              <p className="home-page__section-text">
                 You report it. We handle it. You see every step.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="home-page__steps-grid">
               {STEPS.map((step, i) => (
                 <motion.div
                   key={step.num}
@@ -289,38 +277,30 @@ const HomePage = () => {
                   whileInView="visible"
                   viewport={{ once: true, amount: 0.3 }}
                   variants={fadeUp}
-                  className={`bg-card rounded-xl border border-border p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
-                    step.num === 3 ? "md:col-span-2" : ""
-                  }`}
+                  className={`home-page__step-card ${step.num === 3 ? "home-page__step-card--wide" : ""}`}
                 >
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground font-extrabold text-lg flex items-center justify-center mb-5 shadow-sm">
-                    {step.num}
-                  </div>
-                  <h3 className="font-bold text-foreground mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                  <div className="home-page__step-badge">{step.num}</div>
+                  <h3 className="home-page__step-title">{step.title}</h3>
+                  <p className="home-page__step-text">{step.desc}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="py-16 md:py-20 bg-gradient-to-br from-primary via-[hsl(210,50%,22%)] to-accent text-center">
-          <div className="mx-auto w-full max-w-[1200px] px-6">
-            <div className="mx-auto max-w-[600px] text-center">
-              <h2 className="text-[clamp(1.75rem,1.1rem+2.8vw,3rem)] font-extrabold text-primary-foreground mb-4">
-                Ready to make a difference?
-              </h2>
+        <section className="home-page__final-cta">
+          <div className="home-page__section-inner">
+            <div className="home-page__final-cta-copy">
+              <h2 className="home-page__final-cta-title">Ready to make a difference?</h2>
 
-              <p className="text-base text-primary-foreground/75 max-w-[42ch] mx-auto mb-8">
+              <p className="home-page__final-cta-text">
                 It takes less than a minute to report an issue. Your city is listening.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  onClick={goToReport}
-                  className="inline-flex items-center justify-center gap-2 font-bold text-sm bg-card text-primary rounded-lg px-6 py-3 min-h-[48px] max-w-[240px] w-full hover:bg-card/90 shadow-lg active:scale-[0.97] transition-all"
-                >
-                  <Plus size={17} /> Get Started
+              <div className="home-page__final-cta-actions">
+                <button onClick={goToReport} className="home-page__final-cta-btn">
+                  <Plus size={17} />
+                  <span>Get Started</span>
                 </button>
               </div>
             </div>
@@ -328,35 +308,22 @@ const HomePage = () => {
         </section>
       </main>
 
-      <footer className="bg-card border-t border-border py-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 px-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+      <footer className="home-page__footer">
+        <div className="home-page__footer-inner">
           <BrandLogo size="sm" showText={true} />
 
-          <nav className="flex gap-5 flex-wrap">
-            <button
-              onClick={goToReport}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+          <nav className="home-page__footer-nav">
+            <button onClick={goToReport} className="home-page__footer-link">
               Report New Issue
             </button>
-            <button
-              onClick={() => goTo("/contact")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <button onClick={() => goTo("/contact")} className="home-page__footer-link">
               Contact Us
             </button>
           </nav>
 
-          <p className="text-xs text-muted-foreground/50">© 2026 eCitizen • Dublin, Ireland</p>
+          <p className="home-page__footer-copy">© 2026 eCitizen • Dublin, Ireland</p>
         </div>
       </footer>
-
-      <style>{`
-        @keyframes pinFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
-        }
-      `}</style>
     </div>
   );
 };

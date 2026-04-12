@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   X,
   ChevronLeft,
@@ -53,8 +53,11 @@ type TableDefinition = {
   rows: TableRowData[];
 };
 
+const pageSizeOptions = [5, 10, 20, 50] as const;
+
 export default function AdminDatabase() {
   const { user, loading: authLoading } = useAuth();
+
   const [search, setSearch] = useState("");
   const [selectedTable, setSelectedTable] = useState<DbTableKey>("users");
   const [sortCol, setSortCol] = useState("");
@@ -72,46 +75,63 @@ export default function AdminDatabase() {
   const [notes, setNotes] = useState<AdminNote[]>([]);
   const [history, setHistory] = useState<AdminHistory[]>([]);
 
-  useEffect(() => {
-    const loadDatabase = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError("");
-
-        const [usersData, staffData, categoriesData, issuesData, notesData, historyData] = await Promise.all([
-          adminFetch<{ users: AdminUser[] }>(user, "/api/admin/users"),
-          adminFetch<{ staff: AdminStaff[] }>(user, "/api/admin/staff"),
-          adminFetch<{ categories: AdminCategory[] }>(user, "/api/admin/categories"),
-          adminFetch<{ issues: AdminIssue[] }>(user, "/api/admin/issues"),
-          adminFetch<{ notes: AdminNote[] }>(user, "/api/admin/notes"),
-          adminFetch<{ history: AdminHistory[] }>(user, "/api/admin/history"),
-        ]);
-
-        setUsers(usersData.users || []);
-        setStaff(staffData.staff || []);
-        setCategories(categoriesData.categories || []);
-        setIssues(issuesData.issues || []);
-        setNotes(notesData.notes || []);
-        setHistory(historyData.history || []);
-      } catch (err: any) {
-        setError(err.message || "Unable to load database tables.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!authLoading) {
-      loadDatabase();
+  const loadDatabase = useCallback(async () => {
+    if (!user) {
+      setUsers([]);
+      setStaff([]);
+      setCategories([]);
+      setIssues([]);
+      setNotes([]);
+      setHistory([]);
+      setLoading(false);
+      return;
     }
-  }, [authLoading, user]);
 
-  const tables = useMemo<TableDefinition[]>(() => {
-    return [
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        usersData,
+        staffData,
+        categoriesData,
+        issuesData,
+        notesData,
+        historyData,
+      ] = await Promise.all([
+        adminFetch<{ users: AdminUser[] }>(user, "/api/admin/users"),
+        adminFetch<{ staff: AdminStaff[] }>(user, "/api/admin/staff"),
+        adminFetch<{ categories: AdminCategory[] }>(user, "/api/admin/categories"),
+        adminFetch<{ issues: AdminIssue[] }>(user, "/api/admin/issues"),
+        adminFetch<{ notes: AdminNote[] }>(user, "/api/admin/notes"),
+        adminFetch<{ history: AdminHistory[] }>(user, "/api/admin/history"),
+      ]);
+
+      setUsers(usersData.users || []);
+      setStaff(staffData.staff || []);
+      setCategories(categoriesData.categories || []);
+      setIssues(issuesData.issues || []);
+      setNotes(notesData.notes || []);
+      setHistory(historyData.history || []);
+    } catch (err: any) {
+      setError(err.message || "Unable to load database tables.");
+      setUsers([]);
+      setStaff([]);
+      setCategories([]);
+      setIssues([]);
+      setNotes([]);
+      setHistory([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading) loadDatabase();
+  }, [authLoading, loadDatabase]);
+
+  const tables = useMemo<TableDefinition[]>(
+    () => [
       {
         key: "users",
         name: "Users",
@@ -205,12 +225,14 @@ export default function AdminDatabase() {
           changedAt: item.changedAt,
         })),
       },
-    ];
-  }, [categories, history, issues, notes, staff, users]);
+    ],
+    [users, staff, categories, issues, notes, history]
+  );
 
-  const selectedTableDef = useMemo(() => {
-    return tables.find((table) => table.key === selectedTable) || tables[0];
-  }, [selectedTable, tables]);
+  const selectedTableDef = useMemo(
+    () => tables.find((table) => table.key === selectedTable) || tables[0],
+    [selectedTable, tables]
+  );
 
   const columns = useMemo(() => {
     const firstRow = selectedTableDef?.rows[0];
@@ -219,25 +241,27 @@ export default function AdminDatabase() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const rows = [...(selectedTableDef?.rows || [])]
-      .filter((row) => {
-        if (!q) return true;
-        return Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(q));
-      })
-      .sort((first, second) => {
+
+    return [...(selectedTableDef?.rows || [])]
+      .filter((row) =>
+        !q
+          ? true
+          : Object.values(row).some((value) =>
+              String(value ?? "").toLowerCase().includes(q)
+            )
+      )
+      .sort((a, b) => {
         if (!sortCol) return 0;
-
-        const firstValue = String(first[sortCol] ?? "");
-        const secondValue = String(second[sortCol] ?? "");
-        const result = firstValue.localeCompare(secondValue);
-        return sortDir === "asc" ? result : result * -1;
+        const result = String(a[sortCol] ?? "").localeCompare(String(b[sortCol] ?? ""));
+        return sortDir === "asc" ? result : -result;
       });
-
-    return rows;
   }, [search, selectedTableDef, sortCol, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * perPage, page * perPage),
+    [filtered, page, perPage]
+  );
 
   const switchTable = (key: DbTableKey) => {
     setSelectedTable(key);
@@ -250,19 +274,22 @@ export default function AdminDatabase() {
   const toggleSort = (column: string) => {
     if (sortCol === column) {
       setSortDir((current) => (current === "asc" ? "desc" : "asc"));
-      return;
+    } else {
+      setSortCol(column);
+      setSortDir("asc");
     }
-
-    setSortCol(column);
-    setSortDir("asc");
   };
 
-  const formatHeader = (value: string) => value.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+  const formatHeader = (value: string) =>
+    value.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
 
   const renderCellValue = (value: any) => {
     if (typeof value === "boolean") {
       return (
-        <Badge variant={value ? "default" : "destructive"} className={`text-xs ${value ? "bg-accent text-accent-foreground" : ""}`}>
+        <Badge
+          variant={value ? "default" : "destructive"}
+          className={`text-xs ${value ? "bg-accent text-accent-foreground" : ""}`}
+        >
           {value ? "Active" : "Disabled"}
         </Badge>
       );
@@ -274,15 +301,15 @@ export default function AdminDatabase() {
   if (loading) {
     return (
       <AdminLayout
-      pageTitle="Database Explorer"
-      breadcrumb="Database Explorer"
-      searchValue={search}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
-      searchPlaceholder="Search records..."
-    >
+        pageTitle="Database Explorer"
+        breadcrumb="Database Explorer"
+        searchValue={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="Search records..."
+      >
         <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
           Loading database tables...
         </div>
@@ -302,29 +329,38 @@ export default function AdminDatabase() {
       searchPlaceholder="Search records..."
     >
       <div className="mb-4">
-        <h2 className="text-lg font-heading font-semibold text-foreground">Database Explorer</h2>
-        <p className="text-sm text-muted-foreground">Browse and inspect all database tables</p>
+        <h2 className="text-lg font-heading font-semibold text-foreground">
+          Database Explorer
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Browse and inspect all database tables
+        </p>
       </div>
 
-      {error ? (
+      {error && (
         <Card className="border-destructive/30 bg-destructive/5 mb-4">
           <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
         </Card>
-      ) : null}
+      )}
 
       <div className="flex gap-6">
         <Card className="shadow-sm w-56 shrink-0">
           <CardContent className="p-0">
             <div className="p-3 border-b border-border">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tables</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Tables
+              </p>
             </div>
+
             <div className="py-1">
               {tables.map((table) => (
                 <button
                   key={table.key}
                   onClick={() => switchTable(table.key)}
                   className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between transition-colors hover:bg-muted/60 ${
-                    selectedTable === table.key ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                    selectedTable === table.key
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -343,7 +379,7 @@ export default function AdminDatabase() {
         <div className="flex-1 min-w-0">
           <Card className="shadow-sm mb-4">
             <CardContent className="p-3 flex flex-wrap items-center gap-3">
-              {search ? (
+              {search && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -354,7 +390,8 @@ export default function AdminDatabase() {
                 >
                   <X className="w-3.5 h-3.5 mr-1" /> Clear
                 </Button>
-              ) : null}
+              )}
+
               <Badge variant="secondary" className="ml-auto text-xs">
                 {filtered.length} records
               </Badge>
@@ -379,10 +416,14 @@ export default function AdminDatabase() {
                     <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={columns.length + 1} className="text-center py-10 text-muted-foreground">
+                      <TableCell
+                        colSpan={columns.length + 1}
+                        className="text-center py-10 text-muted-foreground"
+                      >
                         No records found
                       </TableCell>
                     </TableRow>
@@ -390,12 +431,20 @@ export default function AdminDatabase() {
                     paginated.map((row, index) => (
                       <TableRow key={`${selectedTable}-${index}`}>
                         {columns.map((column) => (
-                          <TableCell key={column} className="text-sm whitespace-nowrap max-w-[250px] truncate">
+                          <TableCell
+                            key={column}
+                            className="text-sm whitespace-nowrap max-w-[250px] truncate"
+                          >
                             {renderCellValue(row[column])}
                           </TableCell>
                         ))}
                         <TableCell>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setDetailRow(row)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setDetailRow(row)}
+                          >
                             View
                           </Button>
                         </TableCell>
@@ -420,7 +469,7 @@ export default function AdminDatabase() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[5, 10, 20, 50].map((size) => (
+                    {pageSizeOptions.map((size) => (
                       <SelectItem key={size} value={String(size)}>
                         {size}
                       </SelectItem>
@@ -428,12 +477,27 @@ export default function AdminDatabase() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -450,17 +514,19 @@ export default function AdminDatabase() {
               Full record from the {selectedTableDef?.name || "selected"} table
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3 py-2">
-            {detailRow
-              ? Object.entries(detailRow).map(([key, value]) => (
-                  <div key={key} className="flex gap-3">
-                    <span className="text-xs font-medium text-muted-foreground w-32 shrink-0 pt-0.5">
-                      {formatHeader(key)}
-                    </span>
-                    <span className="text-sm text-foreground break-all">{renderCellValue(value)}</span>
-                  </div>
-                ))
-              : null}
+            {detailRow &&
+              Object.entries(detailRow).map(([key, value]) => (
+                <div key={key} className="flex gap-3">
+                  <span className="text-xs font-medium text-muted-foreground w-32 shrink-0 pt-0.5">
+                    {formatHeader(key)}
+                  </span>
+                  <span className="text-sm text-foreground break-all">
+                    {renderCellValue(value)}
+                  </span>
+                </div>
+              ))}
           </div>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MoreHorizontal,
   X,
@@ -68,15 +68,31 @@ type StaffRow = {
 
 type SortKey = keyof StaffRow;
 type SortDir = "asc" | "desc";
+type ConfirmAction = {
+  staff: StaffRow;
+  action: "enable" | "disable";
+} | null;
+
+const roleOptions: Role[] = ["ADMIN", "STAFF"];
+const pageSizeOptions = [5, 10, 20, 50] as const;
+
+const columns: { key: SortKey; label: string }[] = [
+  { key: "id", label: "Staff ID" },
+  { key: "name", label: "Name" },
+  { key: "email", label: "Email" },
+  { key: "jobTitle", label: "Job Title" },
+  { key: "role", label: "Role" },
+  { key: "isActive", label: "Status" },
+  { key: "createdAt", label: "Created" },
+];
 
 function roleLabel(role: Role) {
-  if (role === "ADMIN") return "Admin";
-  if (role === "STAFF") return "Staff";
-  return "Citizen";
+  return role === "ADMIN" ? "Admin" : role === "STAFF" ? "Staff" : "Citizen";
 }
 
 export default function AdminStaff() {
   const { user, loading: authLoading } = useAuth();
+
   const [staff, setStaff] = useState<AdminStaff[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -93,56 +109,56 @@ export default function AdminStaff() {
   const [editStaff, setEditStaff] = useState<StaffRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editJobTitle, setEditJobTitle] = useState("");
-  const [confirmAction, setConfirmAction] = useState<{
-    staff: StaffRow;
-    action: "enable" | "disable";
-  } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+
+  const loadStaff = useCallback(async () => {
+    if (!user) {
+      setStaff([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const data = await adminFetch<{ staff: AdminStaff[] }>(user, "/api/admin/staff");
+      setStaff(data.staff || []);
+    } catch (err: any) {
+      setError(err.message || "Unable to load staff records.");
+      setStaff([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const loadStaff = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    if (!authLoading) loadStaff();
+  }, [authLoading, loadStaff]);
 
-      try {
-        setLoading(true);
-        setError("");
-        const data = await adminFetch<{ staff: AdminStaff[] }>(user, "/api/admin/staff");
-        setStaff(data.staff || []);
-      } catch (err: any) {
-        setError(err.message || "Unable to load staff records.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const rows = useMemo<StaffRow[]>(
+    () =>
+      staff.map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        name: item.user.fullName,
+        email: item.user.email,
+        jobTitle: item.jobTitle,
+        role: item.user.role,
+        isActive: item.user.isActive,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        assignedIssues: item._count?.assignedIssues || 0,
+        notes: item._count?.notes || 0,
+        source: item,
+      })),
+    [staff]
+  );
 
-    if (!authLoading) {
-      loadStaff();
-    }
-  }, [authLoading, user]);
-
-  const rows = useMemo<StaffRow[]>(() => {
-    return staff.map((item) => ({
-      id: item.id,
-      userId: item.userId,
-      name: item.user.fullName,
-      email: item.user.email,
-      jobTitle: item.jobTitle,
-      role: item.user.role,
-      isActive: item.user.isActive,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      assignedIssues: item._count?.assignedIssues || 0,
-      notes: item._count?.notes || 0,
-      source: item,
-    }));
-  }, [staff]);
-
-  const hasFilters = search || roleFilter !== "all" || statusFilter !== "all";
+  const hasFilters = Boolean(search.trim()) || roleFilter !== "all" || statusFilter !== "all";
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+
     return [...rows]
       .filter((item) => {
         const matchesSearch =
@@ -158,36 +174,44 @@ export default function AdminStaff() {
 
         return matchesSearch && matchesRole && matchesStatus;
       })
-      .sort((first, second) => {
-        const result = compareValues(first[sortKey], second[sortKey]);
-        return sortDir === "asc" ? result : result * -1;
+      .sort((a, b) => {
+        const result = compareValues(a[sortKey], b[sortKey]);
+        return sortDir === "asc" ? result : -result;
       });
-  }, [roleFilter, rows, search, sortDir, sortKey, statusFilter]);
+  }, [rows, search, roleFilter, statusFilter, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * perPage, page * perPage),
+    [filtered, page, perPage]
+  );
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((current) => (current === "asc" ? "desc" : "asc"));
-      return;
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
     }
-
-    setSortKey(key);
-    setSortDir("asc");
   };
 
-  const sortIndicator = (key: SortKey) => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const updateStaffProfile = async (staffId: number, jobTitle: string) => {
     if (!user) return null;
 
     try {
       setSavingStaff((current) => ({ ...current, [staffId]: true }));
-      const data = await adminFetch<{ staff: AdminStaff; message: string }>(user, `/api/admin/staff/${staffId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ jobTitle }),
-      });
+
+      const data = await adminFetch<{ staff: AdminStaff; message: string }>(
+        user,
+        `/api/admin/staff/${staffId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ jobTitle }),
+        }
+      );
 
       setStaff((current) => current.map((item) => (item.id === staffId ? data.staff : item)));
       toast.success(data.message || "Staff profile updated successfully");
@@ -208,10 +232,15 @@ export default function AdminStaff() {
 
     try {
       setSavingUsers((current) => ({ ...current, [userId]: true }));
-      const data = await adminFetch<{ user: any; message: string }>(user, `/api/admin/users/${userId}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+
+      const data = await adminFetch<{ user: Partial<AdminStaff["user"]>; message: string }>(
+        user,
+        `/api/admin/users/${userId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
 
       setStaff((current) =>
         current.map((item) =>
@@ -226,6 +255,7 @@ export default function AdminStaff() {
             : item
         )
       );
+
       toast.success(data.message || "Staff user updated successfully");
       return data.user;
     } catch (err: any) {
@@ -239,12 +269,12 @@ export default function AdminStaff() {
   const handleEditSave = async () => {
     if (!editStaff) return;
 
-    const userUpdated = await updateStaffUser(editStaff.userId, { fullName: editName.trim() });
-    const staffUpdated = await updateStaffProfile(editStaff.id, editJobTitle.trim());
+    const [userUpdated, staffUpdated] = await Promise.all([
+      updateStaffUser(editStaff.userId, { fullName: editName.trim() }),
+      updateStaffProfile(editStaff.id, editJobTitle.trim()),
+    ]);
 
-    if (userUpdated && staffUpdated) {
-      setEditStaff(null);
-    }
+    if (userUpdated && staffUpdated) setEditStaff(null);
   };
 
   const handleRoleChange = async (row: StaffRow, role: Role) => {
@@ -259,18 +289,25 @@ export default function AdminStaff() {
     setConfirmAction(null);
   };
 
+  const resetFilters = () => {
+    setSearch("");
+    setRoleFilter("all");
+    setStatusFilter("all");
+    setPage(1);
+  };
+
   if (loading) {
     return (
       <AdminLayout
-      pageTitle="Staff"
-      breadcrumb="Staff"
-      searchValue={search}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
-      searchPlaceholder="Search by name, email, ID, or job title..."
-    >
+        pageTitle="Staff"
+        breadcrumb="Staff"
+        searchValue={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="Search by name, email, ID, or job title..."
+      >
         <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
           Loading staff records...
         </div>
@@ -290,15 +327,19 @@ export default function AdminStaff() {
       searchPlaceholder="Search by name, email, ID, or job title..."
     >
       <div className="mb-4">
-        <h2 className="text-lg font-heading font-semibold text-foreground">Staff Management</h2>
-        <p className="text-sm text-muted-foreground">View and manage all staff records</p>
+        <h2 className="text-lg font-heading font-semibold text-foreground">
+          Staff Management
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          View and manage all staff records
+        </p>
       </div>
 
-      {error ? (
+      {error && (
         <Card className="border-destructive/30 bg-destructive/5 mb-4">
           <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
         </Card>
-      ) : null}
+      )}
 
       <Card className="shadow-sm mb-4">
         <CardContent className="p-3 flex flex-wrap items-center gap-3">
@@ -314,10 +355,14 @@ export default function AdminStaff() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="ADMIN">Admin</SelectItem>
-              <SelectItem value="STAFF">Staff</SelectItem>
+              {roleOptions.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {roleLabel(role)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+
           <Select
             value={statusFilter}
             onValueChange={(value) => {
@@ -334,20 +379,13 @@ export default function AdminStaff() {
               <SelectItem value="disabled">Disabled</SelectItem>
             </SelectContent>
           </Select>
-          {hasFilters ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setRoleFilter("all");
-                setStatusFilter("all");
-                setPage(1);
-              }}
-            >
+
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="w-3.5 h-3.5 mr-1" /> Clear
             </Button>
-          ) : null}
+          )}
+
           <Badge variant="secondary" className="ml-auto text-xs">
             {filtered.length} staff
           </Badge>
@@ -358,13 +396,16 @@ export default function AdminStaff() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("id")}>Staff ID{sortIndicator("id")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>Name{sortIndicator("name")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("email")}>Email{sortIndicator("email")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("jobTitle")}>Job Title{sortIndicator("jobTitle")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("role")}>Role{sortIndicator("role")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("isActive")}>Status{sortIndicator("isActive")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("createdAt")}>Created{sortIndicator("createdAt")}</TableHead>
+              {columns.map((column) => (
+                <TableHead
+                  key={column.key}
+                  className="cursor-pointer select-none"
+                  onClick={() => toggleSort(column.key)}
+                >
+                  {column.label}
+                  {sortIndicator(column.key)}
+                </TableHead>
+              ))}
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -372,7 +413,7 @@ export default function AdminStaff() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={columns.length + 1} className="text-center py-10 text-muted-foreground">
                   No staff found
                 </TableCell>
               </TableRow>
@@ -384,7 +425,10 @@ export default function AdminStaff() {
                   <TableCell className="text-sm">{row.email}</TableCell>
                   <TableCell className="text-sm">{row.jobTitle}</TableCell>
                   <TableCell>
-                    <Badge variant={row.role === "ADMIN" ? "default" : "secondary"} className="text-xs">
+                    <Badge
+                      variant={row.role === "ADMIN" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
                       {roleLabel(row.role)}
                     </Badge>
                   </TableCell>
@@ -404,6 +448,7 @@ export default function AdminStaff() {
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
+
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => {
@@ -414,10 +459,11 @@ export default function AdminStaff() {
                         >
                           Edit Details
                         </DropdownMenuItem>
+
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>Change Role</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
-                            {(["ADMIN", "STAFF"] as Role[]).map((role) => (
+                            {roleOptions.map((role) => (
                               <DropdownMenuItem
                                 key={role}
                                 disabled={savingUsers[row.userId]}
@@ -428,7 +474,9 @@ export default function AdminStaff() {
                             ))}
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+
                         <DropdownMenuSeparator />
+
                         {row.isActive ? (
                           <DropdownMenuItem
                             onClick={() => setConfirmAction({ staff: row, action: "disable" })}
@@ -468,7 +516,7 @@ export default function AdminStaff() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[5, 10, 20, 50].map((size) => (
+                {pageSizeOptions.map((size) => (
                   <SelectItem key={size} value={String(size)}>
                     {size}
                   </SelectItem>
@@ -476,12 +524,27 @@ export default function AdminStaff() {
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => setPage((current) => current + 1)}
+            >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -492,18 +555,30 @@ export default function AdminStaff() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Staff Details</DialogTitle>
-            <DialogDescription>Update details for staff ID {editStaff?.id}</DialogDescription>
+            <DialogDescription>
+              Update details for staff ID {editStaff?.id}
+            </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3 py-2">
             <div>
               <Label>Name</Label>
-              <Input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1" />
+              <Input
+                value={editName}
+                onChange={(event) => setEditName(event.target.value)}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Job Title</Label>
-              <Input value={editJobTitle} onChange={(event) => setEditJobTitle(event.target.value)} className="mt-1" />
+              <Input
+                value={editJobTitle}
+                onChange={(event) => setEditJobTitle(event.target.value)}
+                className="mt-1"
+              />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditStaff(null)}>
               Cancel
@@ -525,11 +600,15 @@ export default function AdminStaff() {
       <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirmAction?.action === "disable" ? "Disable Staff" : "Enable Staff"}</DialogTitle>
+            <DialogTitle>
+              {confirmAction?.action === "disable" ? "Disable Staff" : "Enable Staff"}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to {confirmAction?.action} <strong>{confirmAction?.staff.name}</strong>?
+              Are you sure you want to {confirmAction?.action}{" "}
+              <strong>{confirmAction?.staff.name}</strong>?
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmAction(null)}>
               Cancel

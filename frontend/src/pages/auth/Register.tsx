@@ -1,4 +1,4 @@
-import { Eye, EyeOff, ShieldCheck, Bell, BarChart3 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,6 @@ import { auth } from "@/firebase/firebase";
 import CitizenLayout from "@/components/layout/CitizenLayout";
 import PageHeader from "@/components/common/PageHeader";
 import SectionCard from "@/components/common/SectionCard";
-
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -115,7 +114,9 @@ const RegisterPage = () => {
       } else if (firebaseErrorCode === "auth/weak-password") {
         setError("Please choose a stronger password.");
       } else if (message === "Unauthorized") {
-        setError("Registration reached Firebase, but backend user sync failed with Unauthorized. Please check that frontend Firebase and backend Admin credentials are using the same Firebase project.");
+        setError(
+          "Registration reached Firebase, but backend user sync failed with Unauthorized. Please check that frontend Firebase and backend Admin credentials are using the same Firebase project."
+        );
       } else {
         setError(message);
       }
@@ -130,7 +131,7 @@ const RegisterPage = () => {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="mb-6"
+        className="login-page__header"
       >
         <PageHeader
           title="Create Account"
@@ -143,83 +144,91 @@ const RegisterPage = () => {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.4 }}
-        className="mb-5"
+        className="login-page__card-wrap"
       >
         <SectionCard>
-          <form className="flex flex-col gap-4" onSubmit={handleRegister} autoComplete="on">
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">Full Name</label>
+          <form className="form-stack" onSubmit={handleRegister} autoComplete="on">
+            <div className="field-stack">
+              <label className="label-text login-page__label">Full Name</label>
               <input
                 type="text"
                 placeholder="Enter your full name"
-                className="input-civic"
+                className="app-input"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 autoComplete="name"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">Email</label>
+            <div className="field-stack">
+              <label className="label-text login-page__label">Email</label>
               <input
                 type="email"
                 placeholder="you@example.com"
-                className="input-civic"
+                className="app-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">Password</label>
-              <div className="relative">
+            <div className="field-stack">
+              <label className="label-text login-page__label">Password</label>
+              <div className="login-page__password-wrap">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
-                  className="input-civic pr-10"
+                  className="app-input app-input--with-icon"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="login-page__password-toggle"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">Confirm Password</label>
-              <div className="relative">
+            <div className="field-stack">
+              <label className="label-text login-page__label">Confirm Password</label>
+              <div className="login-page__password-wrap">
                 <input
                   type={showConfirm ? "text" : "password"}
                   placeholder="Confirm your password"
-                  className="input-civic pr-10"
+                  className="app-input app-input--with-icon"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowConfirm((prev) => !prev)}
+                  className="login-page__password-toggle"
+                  aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
                 >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <span className="text-xs text-muted-foreground leading-relaxed">
+            <div className="register-page__agreement">
+              <span className="helper-text register-page__agreement-text">
                 By creating an account, I agree to the Terms of Service and Privacy Policy
               </span>
-            </label>
+            </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error ? <p className="login-page__error">{error}</p> : null}
 
-            <button type="submit" className="btn-primary-civic w-full mt-1" disabled={loading}>
+            <button
+              type="submit"
+              className="app-btn app-btn--primary login-page__submit"
+              disabled={loading}
+            >
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
@@ -230,10 +239,14 @@ const RegisterPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25 }}
-        className="text-center text-sm text-muted-foreground mb-6"
+        className="login-page__footer"
       >
         Already have an account?{" "}
-        <button onClick={() => navigate("/login")} className="text-primary font-medium hover:underline">
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="login-page__text-link login-page__text-link--strong"
+        >
           Log in
         </button>
       </motion.p>

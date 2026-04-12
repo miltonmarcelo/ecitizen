@@ -17,7 +17,7 @@ type FormErrors = {
   submit?: string;
 };
 
-const MIN_MESSAGE_LENGTH = 50;
+const MIN_MESSAGE_LENGTH = 30;
 const EMAILJS_SERVICE_ID = "service_u0wnwlc";
 const EMAILJS_TEMPLATE_ID = "template_sdwe1a3";
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
@@ -46,14 +46,8 @@ const ContactPage = () => {
     const trimmed = name.trim();
     const parts = trimmed.split(/\s+/).filter(Boolean);
 
-    if (!trimmed) {
-      return "Name is required.";
-    }
-
-    if (parts.length < 2) {
-      return "Please enter your first and last name.";
-    }
-
+    if (!trimmed) return "Name is required.";
+    if (parts.length < 2) return "Please enter your first and last name.";
     if (parts.some((part) => part.length < 2)) {
       return "Each part of the name should have at least 2 characters.";
     }
@@ -64,15 +58,10 @@ const ContactPage = () => {
   const validateEmail = (email: string) => {
     const trimmed = email.trim();
 
-    if (!trimmed) {
-      return "Email is required.";
-    }
+    if (!trimmed) return "Email is required.";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(trimmed)) {
-      return "Please enter a valid email address.";
-    }
+    if (!emailRegex.test(trimmed)) return "Please enter a valid email address.";
 
     return "";
   };
@@ -80,10 +69,7 @@ const ContactPage = () => {
   const validateMessage = (message: string) => {
     const trimmed = message.trim();
 
-    if (!trimmed) {
-      return "Message is required.";
-    }
-
+    if (!trimmed) return "Message is required.";
     if (trimmed.length < MIN_MESSAGE_LENGTH) {
       return `Message must be at least ${MIN_MESSAGE_LENGTH} characters.`;
     }
@@ -100,13 +86,10 @@ const ContactPage = () => {
 
     Object.keys(newErrors).forEach((key) => {
       const typedKey = key as keyof FormErrors;
-      if (!newErrors[typedKey]) {
-        delete newErrors[typedKey];
-      }
+      if (!newErrors[typedKey]) delete newErrors[typedKey];
     });
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -130,20 +113,14 @@ const ContactPage = () => {
   };
 
   const resetCaptcha = () => {
-    if (recaptchaRef.current) {
-      recaptchaRef.current.reset();
-    }
+    recaptchaRef.current?.reset();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitStatus("idle");
 
-    const isValid = validateForm();
-
-    if (!isValid) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (!EMAILJS_PUBLIC_KEY) {
       setSubmitStatus("error");
@@ -196,7 +173,7 @@ const ContactPage = () => {
       });
       setErrors({});
       resetCaptcha();
-    } catch (error) {
+    } catch {
       setSubmitStatus("error");
       setErrors({
         submit: "Something went wrong while sending your message. Please try again.",
@@ -209,30 +186,30 @@ const ContactPage = () => {
 
   return (
     <CitizenLayout width="default" showBack backTo="/">
-      <div className="space-y-5">
-        <motion.div {...fadeUp(0)}>
-          <h2 className="text-xl font-bold text-foreground">Contact Us</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+      <div className="contact-page">
+        <motion.div {...fadeUp(0)} className="contact-page__header">
+          <h2 className="page-title contact-page__title">Contact Us</h2>
+          <p className="page-subtitle">
             Have a question or need help? Send us a message and we will get back to you.
           </p>
         </motion.div>
 
-        <motion.div {...fadeUp(0.05)} className="card-civic">
+        <motion.div {...fadeUp(0.05)} className="card-base card-body">
           {submitStatus === "success" && (
-            <div className="mb-6 rounded-lg border border-green-200 bg-accent/10 px-4 py-3 text-sm text-accent">
+            <div className="contact-page__banner contact-page__banner--success">
               Your message was sent successfully.
             </div>
           )}
 
           {(submitStatus === "error" || errors.submit) && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="contact-page__banner contact-page__banner--error">
               {errors.submit || "Something went wrong. Please try again."}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
-            <div>
-              <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
+          <form onSubmit={handleSubmit} noValidate className="form-stack">
+            <div className="field-stack">
+              <label htmlFor="name" className="label-text contact-page__label">
                 Full name
               </label>
               <input
@@ -242,15 +219,13 @@ const ContactPage = () => {
                 placeholder="Enter your first and last name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`input-civic ${
-                  errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
-                }`}
+                className={`app-input ${errors.name ? "contact-page__input--error" : ""}`}
               />
-              {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
+              {errors.name && <p className="contact-page__error">{errors.name}</p>}
             </div>
 
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
+            <div className="field-stack">
+              <label htmlFor="email" className="label-text contact-page__label">
                 Email
               </label>
               <input
@@ -260,15 +235,13 @@ const ContactPage = () => {
                 placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleChange}
-                className={`input-civic ${
-                  errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
-                }`}
+                className={`app-input ${errors.email ? "contact-page__input--error" : ""}`}
               />
-              {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+              {errors.email && <p className="contact-page__error">{errors.email}</p>}
             </div>
 
-            <div>
-              <label htmlFor="message" className="mb-2 block text-sm font-medium text-foreground">
+            <div className="field-stack">
+              <label htmlFor="message" className="label-text contact-page__label">
                 Message
               </label>
               <textarea
@@ -278,19 +251,19 @@ const ContactPage = () => {
                 placeholder="Write your message here"
                 value={formData.message}
                 onChange={handleChange}
-                className={`input-civic resize-none ${
-                  errors.message ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+                className={`app-input contact-page__textarea ${
+                  errors.message ? "contact-page__input--error" : ""
                 }`}
               />
-              <div className="mt-2 flex items-center justify-between">
+              <div className="contact-page__meta-row">
                 {errors.message ? (
-                  <p className="text-sm text-red-600">{errors.message}</p>
+                  <p className="contact-page__error">{errors.message}</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="contact-page__helper">
                     Minimum {MIN_MESSAGE_LENGTH} characters.
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="contact-page__count">
                   {formData.message.trim().length} characters
                 </p>
               </div>
@@ -303,16 +276,16 @@ const ContactPage = () => {
                 size="invisible"
               />
             ) : (
-              <p className="text-sm text-red-600">
+              <p className="contact-page__error">
                 reCAPTCHA is not configured. Please set VITE_RECAPTCHA_SITE_KEY.
               </p>
             )}
 
-            <div className="pt-2">
+            <div className="contact-page__actions">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-70"
+                className="app-btn app-btn--primary contact-page__submit"
               >
                 {isSubmitting ? "Sending..." : "Send message"}
               </button>

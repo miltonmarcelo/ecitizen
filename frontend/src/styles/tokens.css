@@ -144,6 +144,7 @@
   --status-cancelled-text:   #991B1B;
   --status-cancelled-border: #FCA5A5;
   --status-cancelled-dot:    #DC2626;
+
 }
 
 
@@ -180,7 +181,7 @@
   --app-btn-bg:              var(--brand-purple);
   --app-btn-bg-hover:        color-mix(in oklab, var(--brand-purple) 85%, black);
   --app-btn-text:            #ffffff;
-  --app-btn-radius:          var(--radius-md);
+  --app-btn-radius:          var(--radius-2xl);
   --app-btn-padding:         var(--space-3) var(--space-6);
   --app-btn-font-size:       var(--text-sm);
 
@@ -188,7 +189,7 @@
   --app-input-bg:            var(--color-surface);
   --app-input-border:        var(--color-border-strong);
   --app-input-border-focus:  var(--brand-blue);
-  --app-input-radius:        var(--radius-sm);
+  --app-input-radius:        var(--radius-2xl);
   --app-input-padding:       var(--space-3) var(--space-4);
   --app-input-font-size:     var(--text-sm);
 

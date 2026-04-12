@@ -14,18 +14,30 @@ export default function BrandLogo({
   textClassName = "",
 }: BrandLogoProps) {
   const sizeClass =
-    size === "sm" ? "w-6 h-6" : size === "lg" ? "w-10 h-10" : "w-8 h-8";
+    size === "sm"
+      ? "brand-logo__image--sm"
+      : size === "lg"
+      ? "brand-logo__image--lg"
+      : "brand-logo__image--md";
+
+  const textSizeClass =
+    size === "sm"
+      ? "brand-logo__text--sm"
+      : size === "lg"
+      ? "brand-logo__text--lg"
+      : "brand-logo__text--md";
 
   return (
-    <div className={`flex items-center gap-2.5 min-w-0 ${className}`}>
+    <div className={`brand-logo ${className}`.trim()}>
       <img
         src={logo}
         alt="eCitizen logo"
-        className={`${sizeClass} object-contain shrink-0`}
+        className={`brand-logo__image ${sizeClass}`}
       />
+
       {showText ? (
         <span
-          className={`font-heading font-bold tracking-tight text-primary truncate ${textClassName}`}
+          className={`brand-logo__text ${textSizeClass} ${textClassName}`.trim()}
         >
           eCitizen
         </span>
