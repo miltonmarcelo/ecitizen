@@ -125,7 +125,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <CitizenLayout>
+    <CitizenLayout showBack backTo="/">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}

@@ -16,6 +16,8 @@ const NotFound = () => {
         <a href="/" className="text-primary underline hover:text-primary/90">
           Return to Home
         </a>
+
+
       </div>
     </div>
   );

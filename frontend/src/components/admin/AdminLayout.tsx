@@ -33,7 +33,7 @@ export default function AdminLayout({
             searchPlaceholder={searchPlaceholder}
             showBackButton
             backTo="/staff/dashboard"
-            backLabel="Back to Staff"
+            backLabel="Back to Staff Dashboard"
           />
 
           <main className="flex-1 p-5 lg:p-6 overflow-auto">{children}</main>

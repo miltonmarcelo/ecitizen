@@ -430,9 +430,9 @@ const StaffIssueDetails = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   {error || "The selected issue could not be loaded."}
                 </p>
-                <Button variant="outline" onClick={() => navigate("/staff/issues")}>
+                <Button variant="outline" onClick={() => navigate("/staff/dashboard")}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to All Issues
+                  Back to Dashboard
                 </Button>
               </div>
             </main>

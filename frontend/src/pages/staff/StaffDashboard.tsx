@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
-import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
 import StaffSummaryCard from "@/components/dashboard/StaffSummaryCard";
 import StaffIssueTable from "@/components/dashboard/StaffIssueTable";
 import StaffSidePanel from "@/components/dashboard/StaffSidePanel";
-import { Badge } from "@/components/ui/badge";
+import StaffLayout from "@/components/layout/StaffLayout";
 import {
   Select,
   SelectContent,
@@ -15,14 +12,13 @@ import {
 } from "@/components/ui/select";
 import {
   FileText,
-  AlertCircle,
-  Loader2,
+  UserCheck,
+  UserX,
   CheckCircle2,
   ListFilter,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
-import type { IssueStatus } from "@/types/domain";
 import { formatIssueStatus } from "@/lib/issueMeta";
 import type { ApiStaffIssue } from "@/lib/staffIssues";
 import {
@@ -30,17 +26,31 @@ import {
   STAFF_DASHBOARD_STATUS_OPTIONS,
 } from "@/lib/staffIssues";
 
+const RESOLVED_STATUSES = new Set(["RESOLVED", "CLOSED"]);
+
+function getAssignedStaffName(staff: any) {
+  return (
+    staff?.user?.fullName ||
+    [staff?.user?.firstName, staff?.user?.lastName].filter(Boolean).join(" ").trim() ||
+    "Unknown staff"
+  );
+}
+
 const StaffDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, appUser, loading: authLoading } = useAuth();
 
   const [issues, setIssues] = useState<ApiStaffIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [assignedFilter, setAssignedFilter] = useState("all");
+  const currentStaffId = appUser?.staffProfile?.id ?? null;
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchIssues = async () => {
       try {
         setLoading(true);
@@ -52,7 +62,6 @@ const StaffDashboard = () => {
         }
 
         const token = await user.getIdToken();
-
         const response = await fetch(`${API_BASE_URL}/api/issues`, {
           method: "GET",
           headers: {
@@ -75,168 +84,193 @@ const StaffDashboard = () => {
       }
     };
 
-    if (!authLoading) {
-      fetchIssues();
-    }
+    fetchIssues();
   }, [user, authLoading]);
 
-  const categories = useMemo(() => {
-    const values = Array.from(
-      new Set(
-        issues
-          .map((issue) => issue.category?.name)
-          .filter((name): name is string => Boolean(name))
-      )
-    ).sort((a, b) => a.localeCompare(b));
+  const categories = useMemo(
+    () =>
+      [...new Set(issues.map((issue) => issue.category?.name).filter(Boolean as any))].sort(
+        (a, b) => a.localeCompare(b)
+      ) as string[],
+    [issues]
+  );
 
-    return values;
+  const assignedStaffOptions = useMemo(() => {
+    const map = new Map<number, string>();
+
+    for (const issue of issues) {
+      const staff = issue.staff;
+      if (!staff?.id) continue;
+
+      if (!map.has(staff.id)) {
+        map.set(staff.id, getAssignedStaffName(staff));
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [issues]);
 
   const filteredIssues = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
 
     return issues.filter((issue) => {
-      const matchesStatus =
-        statusFilter === "all" || issue.status === statusFilter;
+      const categoryName = issue.category?.name || "Uncategorised";
+      const assignedStaffId = issue.staff?.id ?? null;
 
-      const matchesCategory =
-        categoryFilter === "all" ||
-        (issue.category?.name || "Uncategorised") === categoryFilter;
+      const matchesAssignment =
+        assignedFilter === "all" ||
+        (assignedFilter === "unassigned" && assignedStaffId === null) ||
+        assignedStaffId === Number(assignedFilter);
 
-      const matchesSearch =
-        !normalizedQuery ||
-        issue.caseId.toLowerCase().includes(normalizedQuery) ||
-        issue.title.toLowerCase().includes(normalizedQuery) ||
-        (issue.description || "").toLowerCase().includes(normalizedQuery) ||
-        (issue.category?.name || "").toLowerCase().includes(normalizedQuery);
-
-      return matchesStatus && matchesCategory && matchesSearch;
+      return (
+        (statusFilter === "all" || issue.status === statusFilter) &&
+        (categoryFilter === "all" || categoryName === categoryFilter) &&
+        matchesAssignment &&
+        (!query ||
+          issue.caseId.toLowerCase().includes(query) ||
+          issue.title.toLowerCase().includes(query) ||
+          (issue.description || "").toLowerCase().includes(query) ||
+          categoryName.toLowerCase().includes(query))
+      );
     });
-  }, [issues, statusFilter, categoryFilter, searchQuery]);
+  }, [issues, statusFilter, categoryFilter, assignedFilter, searchQuery]);
 
-  const tableIssues = useMemo(() => {
-    return filteredIssues.map(mapApiIssueToTableIssue);
-  }, [filteredIssues]);
+  const tableIssues = useMemo(
+    () => filteredIssues.map(mapApiIssueToTableIssue),
+    [filteredIssues]
+  );
 
   const stats = useMemo(() => {
-    const total = issues.length;
-    const open = issues.filter(
-      (issue) => issue.status === "CREATED" || issue.status === "UNDER_REVIEW"
-    ).length;
-    const inProgress = issues.filter(
-      (issue) => issue.status === "IN_PROGRESS"
-    ).length;
-    const resolved = issues.filter(
-      (issue) => issue.status === "RESOLVED" || issue.status === "CLOSED"
-    ).length;
+    let assignedToMe = 0;
+    let unassigned = 0;
+    let resolvedByMe = 0;
 
-    return { total, open, inProgress, resolved };
-  }, [issues]);
+    for (const issue of issues) {
+      const assignedStaffId = issue.staff?.id ?? null;
+      const isMine = currentStaffId !== null && assignedStaffId === currentStaffId;
+      const isUnassigned = assignedStaffId === null;
+      const isResolved = RESOLVED_STATUSES.has(issue.status);
+
+      if (isMine) assignedToMe++;
+      if (isUnassigned) unassigned++;
+      if (isMine && isResolved) resolvedByMe++;
+    }
+
+    return {
+      total: issues.length,
+      assignedToMe,
+      unassigned,
+      resolvedByMe,
+    };
+  }, [issues, currentStaffId]);
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <StaffAppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <StaffDashboardHeader
-            pageTitle="Operational Dashboard"
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
+    <StaffLayout
+      pageTitle="Operational Dashboard"
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+    >
+      <div className="staff-summary-grid">
+        <StaffSummaryCard
+          title="Total Reports"
+          value={stats.total}
+          icon={FileText}
+          tone="default"
+        />
+        <StaffSummaryCard
+          title="Assigned to Me"
+          value={stats.assignedToMe}
+          icon={UserCheck}
+          tone="assigned"
+        />
+        <StaffSummaryCard
+          title="Unassigned"
+          value={stats.unassigned}
+          icon={UserX}
+          tone="unassigned"
+        />
+        <StaffSummaryCard
+          title="Resolved by Me"
+          value={stats.resolvedByMe}
+          icon={CheckCircle2}
+          tone="resolved"
+        />
+      </div>
+
+      <div className="staff-workspace">
+        <div className="staff-workspace__main">
+          <div className="staff-toolbar">
+            <div className="staff-toolbar__group">
+              <ListFilter className="staff-toolbar__icon" />
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="staff-select-trigger">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {STAFF_DASHBOARD_STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {formatIssueStatus(status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="staff-select-trigger staff-select-trigger--wide">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={assignedFilter} onValueChange={setAssignedFilter}>
+                <SelectTrigger className="staff-select-trigger staff-select-trigger--wide">
+                  <SelectValue placeholder="Assigned to" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+
+                  {assignedStaffOptions.map((staff) => (
+                    <SelectItem key={staff.id} value={String(staff.id)}>
+                      {staff.label}
+                    </SelectItem>
+                  ))}
+
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="staff-count-badge">{tableIssues.length} issues</div>
+          </div>
+
+          {error && <div className="staff-error-banner">{error}</div>}
+
+          <StaffIssueTable
+            issues={tableIssues}
+            loading={loading}
+            emptyMessage="No issues found for the selected filters."
           />
+        </div>
 
-          <main className="flex-1 p-5 lg:p-6 overflow-auto">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <StaffSummaryCard
-                title="Total Issues"
-                value={stats.total}
-                icon={FileText}
-                accentClass="text-primary bg-primary/10"
-                cardClassName="bg-card"
-              />
-              <StaffSummaryCard
-                title="Open"
-                value={stats.open}
-                icon={AlertCircle}
-                accentClass="text-primary-foreground bg-primary"
-                cardClassName="bg-primary/10"
-              />
-              <StaffSummaryCard
-                title="In Progress"
-                value={stats.inProgress}
-                icon={Loader2}
-                accentClass="text-amber-700 bg-amber-100"
-                cardClassName="bg-warning/20"
-              />
-              <StaffSummaryCard
-                title="Resolved"
-                value={stats.resolved}
-                icon={CheckCircle2}
-                accentClass="text-accent/200 bg-accent/30"
-                cardClassName="bg-accent/20"
-              />
-            </div>
-
-            <div className="flex gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <ListFilter className="w-4 h-4 text-muted-foreground" />
-
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="h-8 w-40 text-xs bg-card">
-                        <SelectValue placeholder="All Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        {STAFF_DASHBOARD_STATUS_OPTIONS.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {formatIssueStatus(status)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="h-8 w-44 text-xs bg-card">
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Badge variant="secondary" className="text-xs">
-                    {tableIssues.length} issues
-                  </Badge>
-                </div>
-
-                {error ? (
-                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive mb-4">
-                    {error}
-                  </div>
-                ) : null}
-
-                <StaffIssueTable
-                  issues={tableIssues}
-                  loading={loading}
-                  emptyMessage="No issues found for the selected filters."
-                />
-              </div>
-
-              <div className="hidden xl:block w-80 shrink-0">
-                <StaffSidePanel issues={issues} />
-              </div>
-            </div>
-          </main>
+        <div className="staff-workspace__side">
+          <StaffSidePanel
+            issues={issues}
+            currentStaffId={currentStaffId}
+          />
         </div>
       </div>
-    </SidebarProvider>
+    </StaffLayout>
   );
 };
 

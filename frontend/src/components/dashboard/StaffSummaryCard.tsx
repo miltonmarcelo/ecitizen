@@ -4,26 +4,26 @@ interface StaffSummaryCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  accentClass?: string;
-  cardClassName?: string;
+  tone?: "default" | "assigned" | "unassigned" | "resolved";
 }
 
 const StaffSummaryCard = ({
   title,
   value,
   icon: Icon,
-  accentClass = "text-primary bg-primary/10",
-  cardClassName = "",
+  tone = "default",
 }: StaffSummaryCardProps) => {
+  const toneClass = `staff-summary-card staff-summary-card--${tone}`;
+
   return (
-    <div className={`rounded-lg border p-5 ${cardClassName || "bg-card border-border"}`}>
-      <div className="flex items-start justify-between gap-3">
+    <div className={toneClass}>
+      <div className="staff-summary-card__top">
         <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-2xl font-semibold text-card-foreground mt-2">{value}</p>
+          <p className="staff-summary-card__title">{title}</p>
+          <p className="staff-summary-card__value">{value}</p>
         </div>
 
-        <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${accentClass}`}>
+        <div className="staff-summary-card__icon">
           <Icon className="w-5 h-5" />
         </div>
       </div>

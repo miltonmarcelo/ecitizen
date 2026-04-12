@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
 import dublinMap from "@/assets/dublin-map.png";
+import BrandLogo from "@/components/common/BrandLogo";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -130,15 +131,7 @@ const HomePage = () => {
             onClick={() => goTo("/")}
             className="flex min-w-0 shrink items-center gap-2 sm:gap-3 font-extrabold text-lg text-primary"
           >
-            <svg className="w-8 h-8" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="9" fill="hsl(var(--primary))" />
-              <path
-                d="M18 7C13.03 7 9 11.03 9 16c0 3.76 2.27 7.01 5.56 8.47L18 29l3.44-4.53C24.73 23.01 27 19.76 27 16c0-4.97-4.03-9-9-9z"
-                fill="hsl(var(--accent))"
-              />
-              <circle cx="18" cy="16" r="4" fill="white" />
-            </svg>
-            <span className="truncate text-base sm:text-lg">eCitizen</span>
+            <BrandLogo size="md" showText={true} />
           </button>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -337,17 +330,7 @@ const HomePage = () => {
 
       <footer className="bg-card border-t border-border py-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 px-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
-          <div className="flex items-center gap-2 font-extrabold text-primary">
-            <svg className="w-[26px] h-[26px]" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="9" fill="hsl(var(--primary))" />
-              <path
-                d="M18 7C13.03 7 9 11.03 9 16c0 3.76 2.27 7.01 5.56 8.47L18 29l3.44-4.53C24.73 23.01 27 19.76 27 16c0-4.97-4.03-9-9-9z"
-                fill="hsl(var(--accent))"
-              />
-              <circle cx="18" cy="16" r="4" fill="white" />
-            </svg>
-            eCitizen
-          </div>
+          <BrandLogo size="sm" showText={true} />
 
           <nav className="flex gap-5 flex-wrap">
             <button

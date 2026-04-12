@@ -68,20 +68,17 @@ const defaultWidths: ColumnWidths = {
   action: 100,
 };
 
-const statusVariantMap: Record<string, string> = {
-  Open: "bg-blue-50 text-blue-700 border-blue-200",
-  "Under Review": "bg-yellow-50 text-yellow-700 border-yellow-200",
-  "In Progress": "bg-amber-50 text-amber-700 border-amber-200",
-  Resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Closed: "bg-slate-50 text-slate-700 border-slate-200",
-  Cancelled: "bg-rose-50 text-rose-700 border-rose-200",
-};
+function getStatusPillClass(status: string): string {
+  const normalized = status.toLowerCase().replace(/[\s-_]/g, "");
 
-function getStatusVariant(status: string): string {
-  return (
-    statusVariantMap[status] ||
-    "bg-slate-50 text-slate-700 border-slate-200"
-  );
+  if (normalized === "open") return "staff-status-pill staff-status-pill--created";
+  if (normalized === "underreview") return "staff-status-pill staff-status-pill--review";
+  if (normalized === "inprogress") return "staff-status-pill staff-status-pill--progress";
+  if (normalized === "resolved") return "staff-status-pill staff-status-pill--resolved";
+  if (normalized === "closed") return "staff-status-pill staff-status-pill--closed";
+  if (normalized === "cancelled") return "staff-status-pill staff-status-pill--cancelled";
+
+  return "staff-status-pill staff-status-pill--closed";
 }
 
 const StaffIssueTable = ({
@@ -233,7 +230,7 @@ const StaffIssueTable = ({
     label: string;
     column: SortKey;
   }) => (
-    <span className="flex items-center gap-1">
+    <span className="staff-table__sort">
       {label} <SortIcon column={column} />
     </span>
   );
@@ -248,20 +245,20 @@ const StaffIssueTable = ({
     widthKey: ColumnKey;
   }) => (
     <TableHead
-      className="relative text-xs font-semibold uppercase tracking-wide cursor-pointer select-none hover:text-foreground transition-colors"
+      className="staff-table__head-cell"
       onClick={() => handleSort(column)}
     >
       <HeadContent label={label} column={column} />
       <div
-        className="absolute right-0 top-0 h-full w-3 cursor-col-resize"
+        className="staff-table__resize-handle"
         onMouseDown={handleResizeStart(widthKey)}
       />
     </TableHead>
   );
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="staff-table">
+      <div className="staff-table__scroll">
         <Table>
           <colgroup>
             <col style={{ width: columnWidths.caseId }} />
@@ -275,7 +272,7 @@ const StaffIssueTable = ({
           </colgroup>
 
           <TableHeader>
-            <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableRow className="staff-table__head-row">
               <SortableHead label="Issue ID" column="caseId" widthKey="caseId" />
               <SortableHead label="Title" column="title" widthKey="title" />
               <SortableHead label="Category" column="category" widthKey="category" />
@@ -283,10 +280,10 @@ const StaffIssueTable = ({
               <SortableHead label="Reported" column="createdAt" widthKey="createdAt" />
               <SortableHead label="Days Open" column="daysOpen" widthKey="daysOpen" />
               <SortableHead label="Updated" column="updatedAt" widthKey="updatedAt" />
-              <TableHead className="relative text-xs font-semibold uppercase tracking-wide text-right">
+              <TableHead className="staff-table__head-action">
                 Action
                 <div
-                  className="absolute right-0 top-0 h-full w-3 cursor-col-resize"
+                  className="staff-table__resize-handle"
                   onMouseDown={handleResizeStart("action")}
                 />
               </TableHead>
@@ -298,7 +295,7 @@ const StaffIssueTable = ({
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="text-sm text-muted-foreground py-10 text-center"
+                  className="staff-table__empty"
                 >
                   Loading issues...
                 </TableCell>
@@ -307,7 +304,7 @@ const StaffIssueTable = ({
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="text-sm text-muted-foreground py-10 text-center"
+                  className="staff-table__empty"
                 >
                   {emptyMessage}
                 </TableCell>
@@ -320,51 +317,46 @@ const StaffIssueTable = ({
                 return (
                   <TableRow
                     key={issue.caseId}
-                    className="hover:bg-muted/30 cursor-pointer"
+                    className="staff-table__row"
                     onClick={() => goToIssue(issue.caseId)}
                   >
-                    <TableCell className="font-mono text-xs text-primary font-medium whitespace-nowrap">
+                    <TableCell className="staff-table__case">
                       {issue.caseId}
                     </TableCell>
 
-                    <TableCell className="text-sm font-medium text-card-foreground">
-                      <span className="block truncate">{issue.title}</span>
+                    <TableCell className="staff-table__title">
+                      <span className="staff-table__title-text">{issue.title}</span>
                     </TableCell>
 
-                    <TableCell className="text-sm text-muted-foreground">
-                      <span className="block truncate">{issue.category}</span>
+                    <TableCell className="staff-table__category">
+                      <span className="staff-table__category-text">{issue.category}</span>
                     </TableCell>
 
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs font-medium whitespace-nowrap ${getStatusVariant(
-                          issue.status
-                        )}`}
-                      >
+                      <Badge variant="outline" className={getStatusPillClass(issue.status)}>
                         {issue.status}
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="staff-table__date">
                       {formatShortDate(issue.createdAt)}
                     </TableCell>
 
                     <TableCell>
                       <span
-                        className={`text-sm font-medium whitespace-nowrap ${
+                        className={`staff-table__days ${
                           isUrgent
-                            ? "text-destructive"
+                            ? "staff-table__days--urgent"
                             : isWarning
-                            ? "text-amber-600"
-                            : "text-muted-foreground"
+                            ? "staff-table__days--warning"
+                            : ""
                         }`}
                       >
                         {issue.daysOpen === 0 ? "Today" : `${issue.daysOpen}d`}
                       </span>
                     </TableCell>
 
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="staff-table__date">
                       {formatShortDate(issue.updatedAt)}
                     </TableCell>
 
@@ -372,7 +364,7 @@ const StaffIssueTable = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                        className="staff-table__action"
                         onClick={(event) => {
                           event.stopPropagation();
                           goToIssue(issue.caseId);
@@ -390,11 +382,11 @@ const StaffIssueTable = ({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="staff-table__pagination">
+        <div className="staff-table__page-size">
           <span>Rows per page</span>
           <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-            <SelectTrigger className="h-8 w-[70px] text-xs bg-background">
+            <SelectTrigger className="staff-table__page-size-trigger">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -407,8 +399,8 @@ const StaffIssueTable = ({
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
+        <div className="staff-table__pager">
+          <span className="staff-table__range">
             {sortedIssues.length === 0
               ? "0 of 0"
               : `${(safePage - 1) * pageSize + 1}–${Math.min(
@@ -420,7 +412,7 @@ const StaffIssueTable = ({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="staff-table__pager-btn"
             disabled={safePage <= 1}
             onClick={() => setPage((current) => current - 1)}
           >
@@ -430,7 +422,7 @@ const StaffIssueTable = ({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="staff-table__pager-btn"
             disabled={safePage >= totalPages}
             onClick={() => setPage((current) => current + 1)}
           >

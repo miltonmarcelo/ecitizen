@@ -1,4 +1,4 @@
-import { Eye, EyeOff, FileText, Search } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft} from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -66,7 +66,9 @@ const LoginPage = () => {
         throw new Error(data.message || "Failed to sync user");
       }
 
-      if (data.user?.role === "STAFF" || data.user?.role === "ADMIN") {
+      if (data.user?.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else if (data.user?.role === "STAFF") {
         navigate("/staff/dashboard");
       } else {
         navigate("/dashboard");
@@ -85,7 +87,7 @@ const LoginPage = () => {
   };
 
   return (
-    <CitizenLayout>
+    <CitizenLayout showBack backTo="/">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
@@ -127,6 +129,7 @@ const LoginPage = () => {
                   className="input-civic pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"

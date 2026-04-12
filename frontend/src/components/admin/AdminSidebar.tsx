@@ -6,7 +6,6 @@ import {
   FolderOpen,
   Database,
   LogOut,
-  Shield,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import BrandLogo from "@/components/common/BrandLogo";
 
 const adminNav = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
@@ -54,22 +54,15 @@ export default function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-card">
       <SidebarContent>
-        <div
-          className={`flex items-center gap-2.5 px-4 pt-5 pb-3 ${
-            collapsed ? "justify-center px-2" : ""
-          }`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-primary" />
-          </div>
-          {!collapsed ? (
-            <div>
-              <p className="text-base font-heading font-bold text-foreground tracking-tight">
-                eCitizen
-              </p>
-              <p className="text-[11px] text-muted-foreground">Admin Workspace</p>
+        <div className="px-4 pt-5 pb-3">
+          {collapsed ? (
+            <BrandLogo size="sm" showText={false} className="justify-center w-full" />
+          ) : (
+            <div className="space-y-1">
+              <BrandLogo size="md" showText={true} />
+              <p className="text-xs text-muted-foreground">Admin Workspace</p>
             </div>
-          ) : null}
+          )}
         </div>
 
         <Separator className="mx-3 mb-1" />

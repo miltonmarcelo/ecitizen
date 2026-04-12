@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserProfileDropdown from "@/components/UserProfileDropdown";
+import BrandLogo from "@/components/common/BrandLogo";
 
 type TopBarProps = {
   title?: string;
@@ -39,16 +40,11 @@ const TopBar = ({
             </button>
           )}
 
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            {title === "eCitizen" ? (
-              <>
-                <span className="text-primary font-extrabold">e</span>
-                <span className="text-primary">Citizen</span>
-              </>
-            ) : (
-              title
-            )}
-          </span>
+          {title === "eCitizen" ? (
+            <BrandLogo size="sm" showText={true} />
+          ) : (
+            <span className="text-lg font-bold tracking-tight text-foreground">{title}</span>
+          )}
         </div>
 
         <div className="flex items-center gap-4">

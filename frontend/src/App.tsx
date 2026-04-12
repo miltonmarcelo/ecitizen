@@ -18,8 +18,6 @@ import ReportIssuePage from "./pages/citizen/ReportIssue";
 import ReportSuccessPage from "./pages/citizen/ReportSuccess";
 import MyReportsPage from "./pages/citizen/MyReports";
 import IssueDetailsPage from "./pages/citizen/IssueDetails";
-import AreaIssuesPage from "./pages/citizen/AreaIssues";
-import PublicIssueDetailsPage from "./pages/citizen/PublicIssueDetails";
 import ChangePasswordPage from "./pages/auth/ChangePassword";
 import ContactPage from "./pages/public/ContactPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPassword";
@@ -27,7 +25,6 @@ import ForgotPasswordConfirmationPage from "./pages/auth/ForgotPasswordConfirmat
 import NotFound from "./pages/public/NotFound";
 
 import StaffDashboard from "./pages/staff/StaffDashboard";
-import StaffAllReports from "./pages/staff/StaffAllReports";
 import StaffIssueDetails from "./pages/staff/StaffIssueDetails";
 
 import AdminPanel from "./pages/admin/AdminPanel";
@@ -131,24 +128,6 @@ const App = () => (
             />
 
             <Route
-              path="/area-issues"
-              element={
-                <ProtectedRoute>
-                  <AreaIssuesPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/area-issue/:issueId"
-              element={
-                <ProtectedRoute>
-                  <PublicIssueDetailsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
               path="/change-password"
               element={
                 <ProtectedRoute>
@@ -167,37 +146,10 @@ const App = () => (
             />
 
             <Route
-              path="/staff/issues"
-              element={
-                <StaffRoute>
-                  <StaffAllReports />
-                </StaffRoute>
-              }
-            />
-
-            <Route
               path="/staff/issues/:issueId"
               element={
                 <StaffRoute>
                   <StaffIssueDetails />
-                </StaffRoute>
-              }
-            />
-
-            <Route
-              path="/staff/my-issues"
-              element={
-                <StaffRoute>
-                  <StaffAllReports />
-                </StaffRoute>
-              }
-            />
-
-            <Route
-              path="/staff/unassigned"
-              element={
-                <StaffRoute>
-                  <StaffAllReports />
                 </StaffRoute>
               }
             />

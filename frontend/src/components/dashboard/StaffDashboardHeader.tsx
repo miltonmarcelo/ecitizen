@@ -5,11 +5,10 @@ import {
   LogOut,
   Mail,
   BadgeCheck,
-  Building2,
-  Clock,
   KeyRound,
   ArrowLeft,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -35,7 +34,7 @@ const StaffDashboardHeader = ({
   pageTitle = "Operational Dashboard",
   searchValue = "",
   onSearchChange,
-  searchPlaceholder = "Search issue ID, title, or keyword...",
+  searchPlaceholder = "Search issue ID, title, or category",
   showBackButton = false,
   backTo = "/staff/dashboard",
   backLabel = "Back",
@@ -48,12 +47,10 @@ const StaffDashboardHeader = ({
   const staffProfile = {
     name: appUser?.fullName || "Staff User",
     role: isAdmin ? "Administrator" : "Operational Staff",
-    email: appUser?.email || "staff.user@council.gov.uk",
-    department: isAdmin ? "Administration" : "Operations",
+    email: appUser?.email || "staff.user@ecitizen.ie",
     employeeId: appUser?.staffProfile?.id
       ? `STAFF-${appUser.staffProfile.id}`
       : "EMP-00421",
-    lastLogin: "Current Session",
   };
 
   const handleSignOut = async () => {
@@ -66,8 +63,8 @@ const StaffDashboardHeader = ({
   };
 
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6 shrink-0">
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="staff-header">
+      <div className="staff-header__left">
         {showBackButton ? (
           <Button
             variant="ghost"
@@ -80,73 +77,60 @@ const StaffDashboardHeader = ({
           </Button>
         ) : null}
 
-        <h1 className="hidden sm:block text-sm font-heading font-semibold text-foreground truncate">
-          {pageTitle}
-        </h1>
+        <h1 className="staff-header__title">{pageTitle}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="staff-header__right">
         {onSearchChange ? (
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <div className="staff-header__search">
+            <Search className="staff-header__search-icon" />
             <Input
               value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="pl-9 h-9 w-72 text-sm bg-background"
+              className="staff-header__search-input"
             />
           </div>
         ) : null}
 
-        <div className="pl-2 border-l border-border">
+        <div className="staff-header__profile-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-md p-1 pr-2 hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <button className="staff-header__profile-trigger focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <div className="staff-header__avatar">
                   <User className="w-4 h-4 text-primary" />
                 </div>
-                <div className="hidden lg:block text-left">
-                  <p className="text-xs font-medium text-foreground leading-none">
-                    {staffProfile.name}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {staffProfile.department}
-                  </p>
+                <div className="staff-header__profile-summary">
+                  <p className="staff-header__profile-name">{staffProfile.name}</p>
                 </div>
               </button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-72 p-0">
-              <div className="p-4 bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="staff-profile-card">
+                <div className="staff-profile-card__identity">
+                  <div className="staff-profile-card__avatar">
                     <User className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {staffProfile.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {staffProfile.role}
-                    </p>
+                    <p className="staff-profile-card__name">{staffProfile.name}</p>
+                    <p className="staff-profile-card__role">{staffProfile.role}</p>
                   </div>
                 </div>
               </div>
 
               <DropdownMenuSeparator className="m-0" />
 
-              <div className="p-3 space-y-2.5">
+              <div className="staff-profile-list">
                 <ProfileRow icon={Mail} label="Email" value={staffProfile.email} />
-                <ProfileRow icon={Building2} label="Department" value={staffProfile.department} />
                 <ProfileRow icon={BadgeCheck} label="Employee ID" value={staffProfile.employeeId} />
-                <ProfileRow icon={Clock} label="Last Login" value={staffProfile.lastLogin} />
               </div>
 
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
                 onClick={() => navigate("/staff/change-password")}
-                className="m-1 cursor-pointer"
+                className="staff-profile-action"
               >
                 <KeyRound className="w-4 h-4 mr-2" />
                 Change Password
@@ -154,7 +138,7 @@ const StaffDashboardHeader = ({
 
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="m-1 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                className="staff-profile-action staff-profile-action--danger"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
@@ -172,17 +156,15 @@ const ProfileRow = ({
   label,
   value,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) => (
-  <div className="flex items-center gap-2.5">
-    <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-    <div className="min-w-0">
-      <p className="text-[11px] text-muted-foreground leading-none mb-0.5">
-        {label}
-      </p>
-      <p className="text-xs text-foreground truncate">{value}</p>
+  <div className="staff-profile-row">
+    <Icon className="staff-profile-row__icon" />
+    <div className="staff-profile-row__meta">
+      <p className="staff-profile-row__label">{label}</p>
+      <p className="staff-profile-row__value">{value}</p>
     </div>
   </div>
 );
