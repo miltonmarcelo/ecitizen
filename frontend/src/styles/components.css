@@ -1558,11 +1558,11 @@
     align-self: center;
   }
 
-    .home-page {
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    background: var(--app-bg);
+  .home-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-bg);
   }
 
   .home-page__main {
@@ -1638,7 +1638,7 @@
 
   .home-page__nav-btn {
     min-height: 2.5rem;
-    padding: 0.5rem 2rem;
+    padding: 0.5rem 0.75rem;
     font-size: 1em;
     font-weight: 800;
   }

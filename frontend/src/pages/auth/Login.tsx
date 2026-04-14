@@ -109,22 +109,30 @@ const LoginPage = () => {
         <SectionCard>
           <form className="form-stack" onSubmit={handleLogin}>
             <div className="field-stack">
-              <label className="label-text login-page__label">Email</label>
+              <label htmlFor="email" className="label-text login-page__label">
+                Email
+              </label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
                 className="app-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
 
-            <div className="field-stack">
-              <label className="label-text login-page__label">Password</label>
+           <div className="field-stack">
+              <label htmlFor="password" className="label-text login-page__label">
+                Password
+              </label>
 
               <div className="login-page__password-wrap">
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   className="app-input app-input--with-icon"
