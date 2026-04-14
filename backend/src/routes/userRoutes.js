@@ -19,7 +19,10 @@ function isStaffOrAdmin(user) {
 
 router.post("/sync", auth, async (req, res) => {
   try {
-    const { fullName } = req.body;
+    const submittedFullName =
+      typeof req.body?.fullName === "string"
+        ? req.body.fullName.trim().replace(/\s+/g, " ")
+        : "";
 
     const firebaseUid = req.firebaseUser?.uid;
     const email = req.firebaseUser?.email;
@@ -30,8 +33,6 @@ router.post("/sync", auth, async (req, res) => {
         message: "Firebase token is missing required user details",
       });
     }
-
-    const finalName = fullName || displayName || email.split("@")[0];
 
     let existingUser = await prisma.user.findFirst({
       where: {
@@ -45,23 +46,32 @@ router.post("/sync", auth, async (req, res) => {
     let user;
 
     if (existingUser) {
-      user = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          firebaseUid,
-          email,
-          fullName: finalName,
-        },
-        include: {
-          staffProfile: true,
-        },
-      });
+      const updateData = {};
+
+      if (existingUser.firebaseUid !== firebaseUid) {
+        updateData.firebaseUid = firebaseUid;
+      }
+
+      if (existingUser.email !== email) {
+        updateData.email = email;
+      }
+
+      user =
+        Object.keys(updateData).length > 0
+          ? await prisma.user.update({
+              where: { id: existingUser.id },
+              data: updateData,
+              include: {
+                staffProfile: true,
+              },
+            })
+          : existingUser;
     } else {
       user = await prisma.user.create({
         data: {
           firebaseUid,
           email,
-          fullName: finalName,
+          fullName: submittedFullName || displayName || email.split("@")[0],
           role: ROLES.CITIZEN,
         },
         include: {
@@ -103,6 +113,58 @@ router.get("/me", auth, async (req, res) => {
     console.error("Get current user error:", error);
     return res.status(500).json({
       message: "Failed to load current user",
+      details: error.message,
+    });
+  }
+});
+
+router.patch("/me", auth, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(404).json({
+        message: "User profile not found",
+      });
+    }
+
+    const fullName =
+      typeof req.body?.fullName === "string"
+        ? req.body.fullName.trim().replace(/\s+/g, " ")
+        : "";
+
+    if (!fullName) {
+      return res.status(400).json({
+        message: "Full name is required",
+      });
+    }
+
+    if (fullName.length < 2) {
+      return res.status(400).json({
+        message: "Full name must be at least 2 characters",
+      });
+    }
+
+    if (fullName.length > 100) {
+      return res.status(400).json({
+        message: "Full name is too long",
+      });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { fullName },
+      include: {
+        staffProfile: true,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Update current user error:", error);
+    return res.status(500).json({
+      message: "Failed to update profile",
       details: error.message,
     });
   }

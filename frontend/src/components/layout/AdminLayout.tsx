@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
+import StaffDashboardHeader from "@/components/staff/StaffDashboardHeader";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -22,10 +22,10 @@ export default function AdminLayout({
 }: AdminLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full overflow-x-hidden bg-background">
         <AdminSidebar />
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col">
           <StaffDashboardHeader
             pageTitle={pageTitle}
             searchValue={searchValue}
@@ -36,7 +36,9 @@ export default function AdminLayout({
             backLabel="Back to Staff Dashboard"
           />
 
-          <main className="flex-1 p-5 lg:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-5 lg:p-6">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>

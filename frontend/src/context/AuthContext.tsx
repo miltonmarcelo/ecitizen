@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebase";
 import { API_BASE_URL } from "@/lib/api";
@@ -25,6 +25,7 @@ type AuthContextType = {
   appUser: AppUser | null;
   loading: boolean;
   logout: () => Promise<void>;
+  refreshAppUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadAppUser = useCallback(async (firebaseUser: User) => {
+    const token = await firebaseUser.getIdToken();
+
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        await signOut(auth);
+      }
+
+      setAppUser(null);
+      return;
+    }
+
+    if (data.user?.isActive === false) {
+      await signOut(auth);
+      setAppUser(null);
+      return;
+    }
+
+    setAppUser(data.user || null);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
@@ -50,34 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
 
-        const token = await firebaseUser.getIdToken();
-
-        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            await signOut(auth);
-          }
-
-          setAppUser(null);
-          setLoading(false);
-          return;
-        }
-
-        if (data.user?.isActive === false) {
-          await signOut(auth);
-          setAppUser(null);
-          setLoading(false);
-          return;
-        }
-
-        setAppUser(data.user || null);
+        await loadAppUser(firebaseUser);
       } catch (error) {
         console.error("AuthContext profile load error:", error);
         setAppUser(null);
@@ -87,15 +90,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loadAppUser]);
 
   const logout = async () => {
     setAppUser(null);
     await signOut(auth);
   };
 
+  const refreshAppUser = async () => {
+    if (!auth.currentUser) {
+      setAppUser(null);
+      return;
+    }
+
+    await loadAppUser(auth.currentUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, appUser, loading, logout }}>
+    <AuthContext.Provider value={{ user, appUser, loading, logout, refreshAppUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -52,8 +52,11 @@ export default function AdminSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border bg-card">
-      <SidebarContent>
+    <Sidebar
+      collapsible="icon"
+      className="overflow-x-hidden border-r border-border bg-card"
+    >
+      <SidebarContent className="overflow-x-hidden">
         <div className="px-4 pt-5 pb-3">
           {collapsed ? (
             <BrandLogo size="sm" showText={false} className="justify-center w-full" />
@@ -79,11 +82,11 @@ export default function AdminSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/admin/dashboard"}
-                      className="hover:bg-muted/60 rounded-md"
+                      className="min-w-0 rounded-md hover:bg-muted/60"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed ? <span>{item.title}</span> : null}
+                      {!collapsed ? <span className="truncate">{item.title}</span> : null}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -102,7 +105,7 @@ export default function AdminSidebar() {
               className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
             >
               <LogOut className="h-4 w-4 shrink-0" />
-              {!collapsed ? <span>Sign Out</span> : null}
+              {!collapsed ? <span className="truncate">Sign Out</span> : null}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

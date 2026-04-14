@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
-  updateProfile,
   deleteUser,
   signOut,
 } from "firebase/auth";
@@ -28,8 +27,9 @@ const RegisterPage = () => {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    const normalizedFullName = fullName.trim().replace(/\s+/g, " ");
 
-    if (!fullName.trim()) {
+    if (!normalizedFullName) {
       setError("Please enter your full name.");
       return;
     }
@@ -57,10 +57,6 @@ const RegisterPage = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       createdUser = userCredential.user;
 
-      await updateProfile(createdUser, {
-        displayName: fullName,
-      });
-
       const token = await createdUser.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
@@ -70,7 +66,7 @@ const RegisterPage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          fullName,
+          fullName: normalizedFullName,
         }),
       });
 

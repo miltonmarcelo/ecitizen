@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import AdminLayout from "@/components/admin/AdminLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -316,17 +316,18 @@ export default function AdminCategories() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <Table>
+      <Card className="shadow-sm admin-table">
+        <div className="admin-table__scroll">
+          <Table className="admin-table__table">
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("id")}>ID{sortIndicator("id")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>Name{sortIndicator("name")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("description")}>Description{sortIndicator("description")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("isActive")}>Status{sortIndicator("isActive")}</TableHead>
-              <TableHead>Issues</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("createdAt")}>Created{sortIndicator("createdAt")}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("updatedAt")}>Updated{sortIndicator("updatedAt")}</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("id")}>ID{sortIndicator("id")}</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("name")}>Name{sortIndicator("name")}</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("description")}>Description{sortIndicator("description")}</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("isActive")}>Status{sortIndicator("isActive")}</TableHead>
+              <TableHead className="whitespace-nowrap">Issues</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("createdAt")}>Created{sortIndicator("createdAt")}</TableHead>
+              <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("updatedAt")}>Updated{sortIndicator("updatedAt")}</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -340,7 +341,7 @@ export default function AdminCategories() {
             ) : (
               paginated.map((row) => (
                 <TableRow key={row.id} className={!row.isActive ? "opacity-60" : ""}>
-                  <TableCell className="font-mono text-xs">{row.id}</TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{row.id}</TableCell>
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{row.description || "—"}</TableCell>
                   <TableCell>
@@ -352,8 +353,8 @@ export default function AdminCategories() {
                     </Badge>
                   </TableCell>
                   <TableCell>{row._count?.issues || 0}</TableCell>
-                  <TableCell className="text-sm">{formatDateTime(row.createdAt)}</TableCell>
-                  <TableCell className="text-sm">{formatDateTime(row.updatedAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{formatDateTime(row.createdAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{formatDateTime(row.updatedAt)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -391,7 +392,8 @@ export default function AdminCategories() {
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

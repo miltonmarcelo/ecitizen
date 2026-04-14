@@ -9,7 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import AdminLayout from "@/components/admin/AdminLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";

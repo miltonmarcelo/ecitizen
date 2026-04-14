@@ -110,7 +110,7 @@ const StaffSidePanel = ({ issues, currentStaffId }: StaffSidePanelProps) => {
 
   const needsAttention = useMemo(
     () =>
-      issues
+      myIssues
         .filter((issue) => {
           const status = getIssueStatus(issue);
           const category = getIssueCategoryName(issue);
@@ -135,7 +135,7 @@ const StaffSidePanel = ({ issues, currentStaffId }: StaffSidePanelProps) => {
           };
         })
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [issues]
+    [myIssues]
   );
 
   const resolvedIssues = myIssues.filter((issue) => isResolvedStatus(getIssueStatus(issue)));

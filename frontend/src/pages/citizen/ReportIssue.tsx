@@ -257,7 +257,7 @@ const ReportIssuePage = () => {
         navigator.geolocation.clearWatch(watchId);
         bestPosition
           ? resolve(bestPosition)
-          : reject(new Error("Unable to retrieve your location."));
+          : reject(new Error("Unable to retrieve your location. Please add it manually."));
       }, 4000);
     });
 

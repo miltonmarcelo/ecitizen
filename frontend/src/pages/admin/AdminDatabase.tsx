@@ -6,7 +6,7 @@ import {
   Database,
 } from "lucide-react";
 
-import AdminLayout from "@/components/admin/AdminLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,16 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/AuthContext";
 import { adminFetch } from "@/lib/adminApi";
-import type {
-  AdminCategory,
-  AdminHistory,
-  AdminIssue,
-  AdminNote,
-  AdminStaff,
-  AdminUser,
+import {
+  formatDateTime,
+  type AdminCategory,
+  type AdminHistory,
+  type AdminIssue,
+  type AdminNote,
+  type AdminStaff,
+  type AdminUser,
 } from "@/lib/admin";
 
 type DbTableKey = "users" | "staff" | "categories" | "issues" | "notes" | "history";
@@ -283,7 +283,10 @@ export default function AdminDatabase() {
   const formatHeader = (value: string) =>
     value.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
 
-  const renderCellValue = (value: any) => {
+  const isDateColumn = (key: string) =>
+    ["createdAt", "updatedAt", "changedAt"].includes(key);
+
+  const renderCellValue = (value: any, column?: string) => {
     if (typeof value === "boolean") {
       return (
         <Badge
@@ -293,6 +296,10 @@ export default function AdminDatabase() {
           {value ? "Active" : "Disabled"}
         </Badge>
       );
+    }
+
+    if (column && isDateColumn(column)) {
+      return formatDateTime(value) || "—";
     }
 
     return String(value ?? "—");
@@ -398,9 +405,9 @@ export default function AdminDatabase() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <ScrollArea className="w-full">
-              <Table>
+          <Card className="shadow-sm admin-table">
+            <div className="admin-table__scroll">
+              <Table className="admin-table__table admin-table__table--wide">
                 <TableHeader>
                   <TableRow>
                     {columns.map((column) => (
@@ -435,7 +442,7 @@ export default function AdminDatabase() {
                             key={column}
                             className="text-sm whitespace-nowrap max-w-[250px] truncate"
                           >
-                            {renderCellValue(row[column])}
+                            {renderCellValue(row[column], column)}
                           </TableCell>
                         ))}
                         <TableCell>
@@ -453,7 +460,7 @@ export default function AdminDatabase() {
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
 
             <div className="flex items-center justify-between px-4 py-3 border-t border-border">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -523,7 +530,7 @@ export default function AdminDatabase() {
                     {formatHeader(key)}
                   </span>
                   <span className="text-sm text-foreground break-all">
-                    {renderCellValue(value)}
+                    {renderCellValue(value, key)}
                   </span>
                 </div>
               ))}

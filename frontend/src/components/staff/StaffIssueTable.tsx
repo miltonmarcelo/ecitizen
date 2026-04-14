@@ -58,14 +58,14 @@ interface StaffIssueTableProps {
 }
 
 const defaultWidths: ColumnWidths = {
-  caseId: 130,
-  title: 360,
-  category: 180,
-  status: 150,
-  createdAt: 130,
-  daysOpen: 110,
-  updatedAt: 130,
-  action: 100,
+  caseId: 110,
+  title: 150,
+  category: 100,
+  status: 110,
+  createdAt: 80,
+  daysOpen: 60,
+  updatedAt: 80,
+  action: 80,
 };
 
 function getStatusPillClass(status: string): string {
@@ -360,7 +360,7 @@ const StaffIssueTable = ({
                       {formatShortDate(issue.updatedAt)}
                     </TableCell>
 
-                    <TableCell className="text-right">
+                    <TableCell className="staff-table__action-cell">
                       <Button
                         variant="ghost"
                         size="sm"

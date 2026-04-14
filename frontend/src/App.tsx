@@ -2,15 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import StaffRoute from "@/components/StaffRoute";
 import AdminRoute from "@/components/AdminRoute";
-
-import Index from "./pages/public/Index";
+import Home from "./pages/public/Home";
 import LoginPage from "./pages/auth/Login";
 import RegisterPage from "./pages/auth/Register";
 import DashboardPage from "./pages/citizen/CitizenDashboard";
@@ -23,11 +21,8 @@ import ContactPage from "./pages/public/ContactPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPassword";
 import ForgotPasswordConfirmationPage from "./pages/auth/ForgotPasswordConfirmation";
 import NotFound from "./pages/public/NotFound";
-
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffIssueDetails from "./pages/staff/StaffIssueDetails";
-
-import AdminPanel from "./pages/admin/AdminPanel";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStaff from "./pages/admin/AdminStaff";
@@ -44,7 +39,7 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Home />} />
 
             <Route
               path="/login"
@@ -163,16 +158,19 @@ const App = () => (
               }
             />
 
-            <Route path="/contact" element={<ContactPage />} />
-
-            <Route
-              path="/admin"
+            <Route 
+              path="/contact"
               element={
-                <AdminRoute>
-                  <AdminPanel />
-                </AdminRoute>
+              <ContactPage />
+            }
+              />
+
+            <Route path="/admin"
+              element={
+              <Navigate to="/admin/dashboard" replace />
               }
-            />
+              />
+            
             <Route
               path="/admin/dashboard"
               element={

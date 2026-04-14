@@ -54,9 +54,6 @@ const LoginPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          fullName: userCredential.user.displayName || "",
-        }),
       });
 
       const data = await response.json();
@@ -66,11 +63,11 @@ const LoginPage = () => {
       }
 
       if (data.user?.role === "ADMIN") {
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else if (data.user?.role === "STAFF") {
-        navigate("/staff/dashboard");
+        navigate("/staff/dashboard", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err: any) {
       if (err.code === "auth/invalid-credential") {

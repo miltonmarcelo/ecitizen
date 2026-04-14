@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import AdminLayout from "@/components/admin/AdminLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -306,14 +306,15 @@ export default function AdminUsers() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <Table>
+      <Card className="shadow-sm admin-table">
+        <div className="admin-table__scroll">
+          <Table className="admin-table__table">
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
                 <TableHead
                   key={column.key}
-                  className="cursor-pointer select-none"
+                  className="cursor-pointer select-none whitespace-nowrap"
                   onClick={() => toggleSort(column.key)}
                 >
                   {column.label}
@@ -334,9 +335,9 @@ export default function AdminUsers() {
             ) : (
               paginated.map((row) => (
                 <TableRow key={row.id} className={!row.isActive ? "opacity-60" : ""}>
-                  <TableCell className="font-mono text-xs">{row.id}</TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{row.id}</TableCell>
                   <TableCell className="font-medium">{row.fullName}</TableCell>
-                  <TableCell className="text-sm">{row.email}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{row.email}</TableCell>
                   <TableCell>
                     <Badge
                       variant={row.role === "ADMIN" ? "default" : "secondary"}
@@ -353,8 +354,8 @@ export default function AdminUsers() {
                       {row.isActive ? "Active" : "Disabled"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{formatDateTime(row.createdAt)}</TableCell>
-                  <TableCell className="text-sm">{formatDateTime(row.updatedAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{formatDateTime(row.createdAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{formatDateTime(row.updatedAt)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -413,7 +414,8 @@ export default function AdminUsers() {
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

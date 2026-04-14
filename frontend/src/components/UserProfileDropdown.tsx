@@ -1,4 +1,5 @@
-import { User, Mail, CalendarDays, CheckCircle, LogOut, KeyRound, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Mail, CalendarDays, LogOut, KeyRound, MessageSquare, Pencil, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 
@@ -14,12 +15,21 @@ import {
 
 const UserProfileDropdown = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, appUser, refreshAppUser } = useAuth();
 
   // Basic fallback values in case user data is missing.
-  const fullName = user?.displayName || "Citizen User";
+  const fullName = appUser?.fullName || "Citizen User";
   const firstName = fullName ? fullName.split(" ")[0] : "";
-  const email = user?.email || "No email available";
+  const email = appUser?.email || user?.email || "No email available";
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(appUser?.fullName || "");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState("");
+
+  useEffect(() => {
+    setDraftName(appUser?.fullName || "");
+  }, [appUser?.fullName]);
 
   // Format account creation date to show in the profile menu.
   const creationTime = user?.metadata?.creationTime
@@ -48,6 +58,54 @@ const UserProfileDropdown = () => {
     navigate("/contact");
   };
 
+  const handleSaveName = async () => {
+    if (!user) return;
+
+    const cleanedName = draftName.trim().replace(/\s+/g, " ");
+
+    if (!cleanedName) {
+      setNameError("Please enter your full name.");
+      return;
+    }
+
+    try {
+      setSavingName(true);
+      setNameError("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/me`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName: cleanedName,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update name");
+      }
+
+      await refreshAppUser();
+      setIsEditingName(false);
+    } catch (error: any) {
+      setNameError(error.message || "Unable to update name.");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setDraftName(appUser?.fullName || "");
+    setNameError("");
+    setIsEditingName(false);
+  };
+
   return (
     <div className="flex items-center gap-4">
       {firstName && (
@@ -72,8 +130,56 @@ const UserProfileDropdown = () => {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="w-5 h-5 text-primary" />
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{fullName}</p>
+              <div className="min-w-0 flex-1">
+                {!isEditingName ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground truncate">{fullName}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftName(appUser?.fullName || "");
+                        setNameError("");
+                        setIsEditingName(true);
+                      }}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Edit name"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      className="app-input h-9 text-sm"
+                      placeholder="Enter your full name"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                        className="app-btn app-btn--primary h-8 px-3 text-xs"
+                      >
+                        {savingName ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={savingName}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted"
+                        aria-label="Cancel"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {nameError ? <p className="text-xs text-destructive">{nameError}</p> : null}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">Citizen</p>
               </div>
             </div>

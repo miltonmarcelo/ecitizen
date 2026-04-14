@@ -16,6 +16,10 @@ const PublicOnlyRoute = ({ children }: PublicOnlyRouteProps) => {
     );
   }
 
+  if (user && appUser?.role === "ADMIN") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
   if (user && appUser?.role === "STAFF") {
     return <Navigate to="/staff/dashboard" replace />;
   }

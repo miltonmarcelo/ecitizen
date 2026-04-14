@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
-import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
+import { StaffAppSidebar } from "@/components/staff/StaffAppSidebar";
+import StaffDashboardHeader from "@/components/staff/StaffDashboardHeader";
 
 type StaffLayoutProps = {
   children: ReactNode;

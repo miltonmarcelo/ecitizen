@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import StaffSummaryCard from "@/components/dashboard/StaffSummaryCard";
-import StaffIssueTable from "@/components/dashboard/StaffIssueTable";
-import StaffSidePanel from "@/components/dashboard/StaffSidePanel";
+import StaffSummaryCard from "@/components/staff/StaffSummaryCard";
+import StaffIssueTable from "@/components/staff/StaffIssueTable";
+import StaffSidePanel from "@/components/staff/StaffSidePanel";
 import StaffLayout from "@/components/layout/StaffLayout";
 import {
   Select,
@@ -166,6 +166,19 @@ const StaffDashboard = () => {
     };
   }, [issues, currentStaffId]);
 
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    categoryFilter !== "all" ||
+    assignedFilter !== "all" ||
+    searchQuery.trim() !== "";
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setAssignedFilter("all");
+    setSearchQuery("");
+  };
+
   return (
     <StaffLayout
       pageTitle="Operational Dashboard"
@@ -249,6 +262,16 @@ const StaffDashboard = () => {
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                 </SelectContent>
               </Select>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="staff-clear-filters"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
 
             <div className="staff-count-badge">{tableIssues.length} issues</div>

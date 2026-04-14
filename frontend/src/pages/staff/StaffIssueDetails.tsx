@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { StaffAppSidebar } from "@/components/dashboard/StaffAppSidebar";
-import StaffDashboardHeader from "@/components/dashboard/StaffDashboardHeader";
+import { StaffAppSidebar } from "@/components/staff/StaffAppSidebar";
+import StaffDashboardHeader from "@/components/staff/StaffDashboardHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
