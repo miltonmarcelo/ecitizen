@@ -527,13 +527,13 @@ const StaffIssueDetails = () => {
                   </div>
                 </section>
 
-                {photoUrl && (
-                  <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-3">
-                    <div className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-sm font-semibold text-foreground">Photo</h3>
-                    </div>
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Photo</h3>
+                  </div>
 
+                  {photoUrl ? (
                     <button
                       type="button"
                       onClick={() => setPhotoModalOpen(true)}
@@ -545,8 +545,15 @@ const StaffIssueDetails = () => {
                         className="issue-photo-detail-thumb"
                       />
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="issue-photo-empty-state">
+                      <ImageIcon className="issue-photo-empty-state__icon" />
+                      <p className="issue-photo-empty-state__text">
+                        No photo was attached to this report.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <section className="rounded-lg border bg-card p-5">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Case Timeline</h3>

@@ -2440,6 +2440,34 @@
   display: block;
 }
 
+.issue-photo-empty-state {
+  min-height: 160px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--app-surface) 55%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.issue-photo-empty-state__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--app-text-secondary);
+  opacity: 0.9;
+}
+
+.issue-photo-empty-state__text {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--app-text-secondary);
+  max-width: 18rem;
+}
+
 .issue-photo-dialog-image {
   width: 100%;
   max-height: 80vh;

@@ -452,7 +452,7 @@ router.get("/:caseId/photo-url", auth, async (req, res) => {
     }
 
     if (!issue.citizen?.firebaseUid) {
-      return res.status(404).json({ message: "Photo not found" });
+      return res.status(204).send();
     }
 
     const filePath = buildIssuePhotoPath(issue.citizen.firebaseUid, issue.caseId);
@@ -462,7 +462,7 @@ router.get("/:caseId/photo-url", auth, async (req, res) => {
     const [exists] = await file.exists();
 
     if (!exists) {
-      return res.status(404).json({ message: "Photo not found" });
+      return res.status(204).send();
     }
 
     const [url] = await file.getSignedUrl({

@@ -73,11 +73,15 @@ export const getIssuePhotoUrl = async (caseId: string, token: string) => {
     },
   });
 
-  const data = await response.json();
+  if (response.status === 204) {
+    return "";
+  }
+
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(data.message || "Unable to load issue photo.");
   }
 
-  return data.url as string;
+  return (data.url as string) || "";
 };

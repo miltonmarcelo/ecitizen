@@ -343,11 +343,11 @@ const IssueDetailsPage = () => {
           </SectionCard>
         </motion.div>
 
-        {photoUrl && (
-          <motion.div {...fadeUp(0.12)}>
-            <SectionCard bodyClassName="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Photo</h3>
+        <motion.div {...fadeUp(0.12)}>
+          <SectionCard bodyClassName="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Photo</h3>
 
+            {photoUrl ? (
               <button
                 type="button"
                 onClick={() => setPhotoModalOpen(true)}
@@ -359,9 +359,16 @@ const IssueDetailsPage = () => {
                   className="issue-photo-detail-thumb"
                 />
               </button>
-            </SectionCard>
-          </motion.div>
-        )}
+            ) : (
+              <div className="issue-photo-empty-state">
+                <ImageIcon className="issue-photo-empty-state__icon" />
+                <p className="issue-photo-empty-state__text">
+                  No photo was attached to this report.
+                </p>
+              </div>
+            )}
+          </SectionCard>
+        </motion.div>
 
         <motion.div {...fadeUp(0.15)}>
           <SectionCard bodyClassName="space-y-3">
