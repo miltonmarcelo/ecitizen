@@ -218,7 +218,9 @@ const HomePage = () => {
                 <br />
                 Resolved.
               </h1>
-
+              <p className="issue-photo-empty__text-optional">
+                *This is a demo app for academic purposes.
+              </p>
               <p className="home-page__hero-text">
                 Report potholes, broken lighting, graffiti and more. Track your cases and help improve your city through one clear platform.
               </p>
@@ -340,7 +342,7 @@ const HomePage = () => {
             </button>
           </nav>
 
-          <p className="home-page__footer-copy">© 2026 eCitizen • Dublin, Ireland</p>
+          <p className="home-page__footer-copy">© 2026 eCitizen • This is a demo app for academic purposes • Dublin, Ireland</p>
         </div>
       </footer>
     </div>
