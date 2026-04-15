@@ -260,13 +260,12 @@ const DashboardPage = () => {
     () => [
       {
         key: "latest-report",
-        icon: History,
-        label: latestIssue ? "See My Latest Report" : "No Reports Yet",
+        icon: latestIssue ? History : Plus,
+        label: latestIssue ? "See My Latest Report" : "Report a New Issue",
         color: "var(--app-brand-primary)",
-        onClick: () => {
-          if (latestIssue) navigate(`/issue/${latestIssue.caseId}`);
-        },
-        disabled: !latestIssue,
+        onClick: () =>
+          latestIssue ? navigate(`/issue/${latestIssue.caseId}`) : navigate("/report"),
+        disabled: false,
       },
       ...topQuickActionCategories.map((category) => {
         const meta = getQuickActionMeta(category.name);
@@ -355,10 +354,16 @@ const DashboardPage = () => {
 
           <div className="space-y-2.5">
             {recentIssues.length === 0 ? (
-              <SectionCard>
-                <p className="text-sm text-muted-foreground">
-                  {loading ? "Loading your issues..." : "No issues reported yet."}
-                </p>
+              <SectionCard bodyClassName="text-center py-8 px-4">
+                <div className="space-y-2">
+                  <p className="text-base font-medium text-foreground">
+                    Nothing here yet. You have not reported any issues so far.
+                  </p>
+
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    When you spot something that needs attention, reporting it here is a quick way to help.
+                  </p>
+                </div>
               </SectionCard>
             ) : (
               recentIssues.map((issue) => (
