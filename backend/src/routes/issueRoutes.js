@@ -2,6 +2,7 @@ const express = require("express");
 const prisma = require("../lib/prisma");
 const auth = require("../middleware/auth");
 const generateCaseId = require("../utils/generateCaseId");
+const admin = require("../config/firebaseAdmin");
 const {
   ROLES,
   ISSUE_STATUS,
@@ -42,6 +43,10 @@ function isAdmin(user) {
 
 function isStaffOrAdmin(user) {
   return isStaff(user) || isAdmin(user);
+}
+
+function buildIssuePhotoPath(firebaseUid, caseId) {
+  return `issuePhotos/${firebaseUid}/${caseId}/report.jpg`;
 }
 
 function getStatusChangeComment(fromStatus, toStatus) {
@@ -412,6 +417,64 @@ router.get("/public-stats/summary", async (req, res) => {
     console.error("Get public stats error:", error);
     return res.status(500).json({
       message: "Failed to fetch public stats",
+      details: error.message,
+    });
+  }
+});
+
+router.get("/:caseId/photo-url", auth, async (req, res) => {
+  try {
+    const { caseId } = req.params;
+
+    const issue = await prisma.issue.findUnique({
+      where: { caseId },
+      select: {
+        caseId: true,
+        citizenId: true,
+        citizen: {
+          select: {
+            firebaseUid: true,
+          },
+        },
+      },
+    });
+
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    if (isCitizen(req.user) && issue.citizenId !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (!isCitizen(req.user) && !isStaffOrAdmin(req.user)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (!issue.citizen?.firebaseUid) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+
+    const filePath = buildIssuePhotoPath(issue.citizen.firebaseUid, issue.caseId);
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(filePath);
+
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+
+    const [url] = await file.getSignedUrl({
+      action: "read",
+      expires: Date.now() + 15 * 60 * 1000,
+    });
+
+    return res.status(200).json({ url });
+  } catch (error) {
+    console.error("Get issue photo URL error:", error);
+    return res.status(500).json({
+      message: "Failed to get photo URL",
       details: error.message,
     });
   }

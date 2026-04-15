@@ -11,6 +11,7 @@ if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: serviceAccount.project_id,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   });
 }
 

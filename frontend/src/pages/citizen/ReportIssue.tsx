@@ -1,6 +1,16 @@
-import { ThumbsUp, Eye, ChevronDown, MapPin, Crosshair, Loader2 } from "lucide-react";
+import {
+  ThumbsUp,
+  Eye,
+  ChevronDown,
+  MapPin,
+  Crosshair,
+  Loader2,
+  Camera,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MiniLocationMap from "@/components/MiniLocationMap";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +19,7 @@ import PageHeader from "@/components/common/PageHeader";
 import SectionCard from "@/components/common/SectionCard";
 import StatusBadge from "@/components/common/StatusBadge";
 import { dublinAreas, localAreasByDublinArea } from "@/data/dublinLocations";
+import { uploadIssuePhoto } from "@/lib/issuePhoto";
 
 type Category = {
   id: number;
@@ -68,9 +79,27 @@ const POSTCODE_TO_DUBLIN_AREA: Record<string, string> = {
 };
 
 const DUPLICATES = [
-  { id: 1, title: "Pothole on Main Road", area: "City Centre", status: "UNDER_REVIEW", supports: 23 },
-  { id: 2, title: "Broken Street Light", area: "West District", status: "IN_PROGRESS", supports: 14 },
-  { id: 3, title: "Blocked Drainage", area: "South Area", status: "CREATED", supports: 8 },
+  {
+    id: 1,
+    title: "Pothole on Main Road",
+    area: "City Centre",
+    status: "UNDER_REVIEW",
+    supports: 23,
+  },
+  {
+    id: 2,
+    title: "Broken Street Light",
+    area: "West District",
+    status: "IN_PROGRESS",
+    supports: 14,
+  },
+  {
+    id: 3,
+    title: "Blocked Drainage",
+    area: "South Area",
+    status: "CREATED",
+    supports: 8,
+  },
 ];
 
 const LOCATION_MESSAGES = {
@@ -125,6 +154,9 @@ const ReportIssuePage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
 
   const localAreaOptions = area ? localAreasByDublinArea[area] || [] : [];
   const isLocationConfirmed =
@@ -304,6 +336,14 @@ const ReportIssuePage = () => {
     if (matchedCategory) setSelectedCategory(matchedCategory);
   }, [requestedCategoryId, categories]);
 
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
+
   const handleUseCurrentLocation = async () => {
     setError("");
     setLocationMessage("");
@@ -435,6 +475,41 @@ const ReportIssuePage = () => {
     setLocationMessage(LOCATION_MESSAGES.pinUpdated);
   };
 
+  const handleOpenPhotoPicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image.");
+      return;
+    }
+
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+
+    setError("");
+    setPhotoFile(file);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+
+    setPhotoFile(null);
+    setPhotoPreviewUrl("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmitIssue = async () => {
     setError("");
 
@@ -506,6 +581,14 @@ const ReportIssuePage = () => {
 
       if (!response.ok) {
         throw new Error(data.message || "Unable to submit your report. Please try again.");
+      }
+
+      if (photoFile && user?.uid) {
+        try {
+          await uploadIssuePhoto(photoFile, user.uid, data.issue.caseId);
+        } catch (uploadError) {
+          console.error("Photo upload failed:", uploadError);
+        }
       }
 
       navigate("/report-success", {
@@ -783,6 +866,61 @@ const ReportIssuePage = () => {
 
             {locationMessage && (
               <p className="text-xs text-primary text-center">{locationMessage}</p>
+            )}
+          </SectionCard>
+        </motion.div>
+
+        <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp}>
+          <SectionCard bodyClassName="space-y-4">
+            <h3 className="section-title">Upload Photo</h3>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoSelected}
+            />
+
+            <div className="issue-photo-upload">
+              {photoPreviewUrl ? (
+                <img
+                  src={photoPreviewUrl}
+                  alt="Issue preview"
+                  className="issue-photo-preview"
+                />
+              ) : (
+                <div className="issue-photo-empty">
+                  <ImagePlus className="issue-photo-empty__icon" />
+                  <p className="issue-photo-empty__title">Take or choose one photo</p>
+                  <p className="issue-photo-empty__text">
+                    Add a clear image that helps identify the issue
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenPhotoPicker}
+              className="btn-secondary-civic flex items-center gap-2 w-full justify-center"
+            >
+              <Camera className="w-4 h-4" />
+              {photoFile ? "Retake Photo" : "Take a Photo"}
+            </button>
+
+            {photoFile && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="btn-outline-civic flex-1 flex items-center justify-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Remove Photo
+                </button>
+              </div>
             )}
           </SectionCard>
         </motion.div>

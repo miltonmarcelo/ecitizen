@@ -9,6 +9,7 @@ import {
   Eye,
   Wrench,
   CircleX,
+  Image as ImageIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
@@ -18,6 +19,8 @@ import CitizenLayout from "@/components/layout/CitizenLayout";
 import PageHeader from "@/components/common/PageHeader";
 import SectionCard from "@/components/common/SectionCard";
 import StatusBadge from "@/components/common/StatusBadge";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { getIssuePhotoUrl } from "@/lib/issuePhoto";
 import { CITIZEN_STATUS_FLOW, formatIssueStatus } from "@/lib/issueMeta";
 
 type ApiCategory = {
@@ -190,6 +193,8 @@ const IssueDetailsPage = () => {
   const [issue, setIssue] = useState<IssueDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -227,6 +232,25 @@ const IssueDetailsPage = () => {
 
     fetchIssue();
   }, [user, authLoading, issueId]);
+
+  useEffect(() => {
+    const fetchPhoto = async () => {
+      try {
+        if (!user || !issue?.caseId) {
+          setPhotoUrl("");
+          return;
+        }
+
+        const token = await user.getIdToken();
+        const url = await getIssuePhotoUrl(issue.caseId, token);
+        setPhotoUrl(url);
+      } catch {
+        setPhotoUrl("");
+      }
+    };
+
+    fetchPhoto();
+  }, [user, issue?.caseId]);
 
   const timeline = useMemo(() => (issue ? buildTimeline(issue) : []), [issue]);
   const noticeConfig = useMemo(() => (issue ? getNoticeConfig(issue) : null), [issue]);
@@ -318,6 +342,26 @@ const IssueDetailsPage = () => {
             </div>
           </SectionCard>
         </motion.div>
+
+        {photoUrl && (
+          <motion.div {...fadeUp(0.12)}>
+            <SectionCard bodyClassName="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Photo</h3>
+
+              <button
+                type="button"
+                onClick={() => setPhotoModalOpen(true)}
+                className="issue-photo-detail-button"
+              >
+                <img
+                  src={photoUrl}
+                  alt="Reported issue"
+                  className="issue-photo-detail-thumb"
+                />
+              </button>
+            </SectionCard>
+          </motion.div>
+        )}
 
         <motion.div {...fadeUp(0.15)}>
           <SectionCard bodyClassName="space-y-3">
@@ -416,6 +460,19 @@ const IssueDetailsPage = () => {
             Submit a New Report
           </button>
         </motion.div>
+
+        <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
+          <DialogContent className="max-w-3xl p-3">
+            <DialogTitle className="sr-only">Issue Photo</DialogTitle>
+            {photoUrl && (
+              <img
+                src={photoUrl}
+                alt="Reported issue enlarged"
+                className="issue-photo-dialog-image"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </CitizenLayout>
   );

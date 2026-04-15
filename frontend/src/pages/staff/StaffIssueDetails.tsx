@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -28,9 +29,11 @@ import {
   Loader2,
   UserRoundCheck,
   Tag,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
+import { getIssuePhotoUrl } from "@/lib/issuePhoto";
 import type { IssueStatus } from "@/types/domain";
 import { ALL_ISSUE_STATUSES, formatIssueStatus, getIssueStatusClass } from "@/lib/issueMeta";
 import {
@@ -145,6 +148,8 @@ const StaffIssueDetails = () => {
   const [currentCategoryId, setCurrentCategoryId] = useState<string>("");
   const [currentAssigneeId, setCurrentAssigneeId] = useState<string>("unassigned");
   const [staffNote, setStaffNote] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   const loadPageData = async () => {
     try {
@@ -222,6 +227,25 @@ const StaffIssueDetails = () => {
       loadPageData();
     }
   }, [user, authLoading, issueId]);
+
+  useEffect(() => {
+    const fetchPhoto = async () => {
+      try {
+        if (!user || !issue?.caseId) {
+          setPhotoUrl("");
+          return;
+        }
+
+        const token = await user.getIdToken();
+        const url = await getIssuePhotoUrl(issue.caseId, token);
+        setPhotoUrl(url);
+      } catch {
+        setPhotoUrl("");
+      }
+    };
+
+    fetchPhoto();
+  }, [user, issue?.caseId]);
 
   const handleSaveStatus = async () => {
     if (!issue || !currentStatus || currentStatus === issue.status || !user) {
@@ -503,6 +527,27 @@ const StaffIssueDetails = () => {
                   </div>
                 </section>
 
+                {photoUrl && (
+                  <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Photo</h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPhotoModalOpen(true)}
+                      className="issue-photo-detail-button"
+                    >
+                      <img
+                        src={photoUrl}
+                        alt="Reported issue"
+                        className="issue-photo-detail-thumb"
+                      />
+                    </button>
+                  </div>
+                )}
+
                 <section className="rounded-lg border bg-card p-5">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Case Timeline</h3>
 
@@ -670,6 +715,19 @@ const StaffIssueDetails = () => {
             </div>
           </main>
         </div>
+
+        <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
+          <DialogContent className="max-w-3xl p-3">
+            <DialogTitle className="sr-only">Issue Photo</DialogTitle>
+            {photoUrl && (
+              <img
+                src={photoUrl}
+                alt="Reported issue enlarged"
+                className="issue-photo-dialog-image"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );
