@@ -614,18 +614,7 @@ const ReportIssuePage = () => {
 
         <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp}>
           <SectionCard bodyClassName="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Title
-              </label>
-              <input
-                className="input-civic"
-                placeholder="e.g. Pothole on Main Road"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
+            
             <div className="relative">
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Category
@@ -665,6 +654,20 @@ const ReportIssuePage = () => {
 
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Title
+              </label>
+              <input
+                className="input-civic"
+                placeholder="e.g. Pothole on Main Road"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Description
               </label>
               <textarea
@@ -679,7 +682,7 @@ const ReportIssuePage = () => {
 
         <motion.div initial="hidden" animate="visible" custom={2} variants={fadeUp}>
           <SectionCard bodyClassName="space-y-4">
-            <h3 className="section-title">Location</h3>
+            <h3 className="section-title">Where is the issue?</h3>
 
             {isGpsMode && (
               <>
