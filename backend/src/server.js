@@ -10,28 +10,27 @@ const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
 const allowedOrigins = [
   "http://localhost:8080",
   "https://ecitizen.onrender.com",
 ];
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
-app.use("/api/categories", categoryRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend for eCitizen is up and running" });
@@ -46,6 +45,7 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
+app.use("/api/categories", categoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/admin", adminRoutes);
