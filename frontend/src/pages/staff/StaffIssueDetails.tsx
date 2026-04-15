@@ -236,6 +236,11 @@ const StaffIssueDetails = () => {
           return;
         }
 
+        if (!(issue as any)?.photoPath && !(issue as any)?.hasPhoto) {
+          setPhotoUrl("");
+          return;
+        }
+
         const token = await user.getIdToken();
         const url = await getIssuePhotoUrl(issue.caseId, token);
         setPhotoUrl(url);
@@ -717,8 +722,14 @@ const StaffIssueDetails = () => {
         </div>
 
         <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
-          <DialogContent className="max-w-3xl p-3">
+          <DialogContent
+            className="max-w-3xl p-3"
+            aria-describedby="issue-photo-description"
+          >
             <DialogTitle className="sr-only">Issue Photo</DialogTitle>
+            <p id="issue-photo-description" className="sr-only">
+              Enlarged photo attached to the reported issue.
+            </p>
             {photoUrl && (
               <img
                 src={photoUrl}

@@ -68,8 +68,6 @@ const ReportSuccessPage = () => {
 
         const data = await response.json();
 
-        console.log("Get issue response:", data);
-
         if (!response.ok) {
           throw new Error(data.message || "Failed to load issue details.");
         }

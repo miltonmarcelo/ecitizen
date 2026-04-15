@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import { User, Mail, CalendarDays, LogOut, KeyRound, MessageSquare, Pencil, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  CalendarDays,
+  LogOut,
+  KeyRound,
+  MessageSquare,
+  Pencil,
+  X,
+  LayoutDashboard,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 
 import { auth } from "@/firebase/firebase";
@@ -15,12 +25,14 @@ import {
 
 const UserProfileDropdown = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, appUser, refreshAppUser } = useAuth();
 
-  // Basic fallback values in case user data is missing.
   const fullName = appUser?.fullName || "Citizen User";
   const firstName = fullName ? fullName.split(" ")[0] : "";
   const email = appUser?.email || user?.email || "No email available";
+  const role = String(appUser?.role || "").toLowerCase();
+  const showDashboardLink = role === "citizen" && location.pathname !== "/dashboard";
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState(appUser?.fullName || "");
@@ -31,7 +43,6 @@ const UserProfileDropdown = () => {
     setDraftName(appUser?.fullName || "");
   }, [appUser?.fullName]);
 
-  // Format account creation date to show in the profile menu.
   const creationTime = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString("en-IE", {
         day: "2-digit",
@@ -40,7 +51,6 @@ const UserProfileDropdown = () => {
       })
     : "Not available";
 
-  // Sign out from Firebase and send user back to home page.
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -56,6 +66,10 @@ const UserProfileDropdown = () => {
 
   const handleContactUs = () => {
     navigate("/contact");
+  };
+
+  const handleGoToDashboard = () => {
+    navigate("/dashboard");
   };
 
   const handleSaveName = async () => {
@@ -109,12 +123,11 @@ const UserProfileDropdown = () => {
   return (
     <div className="flex items-center gap-4">
       {firstName && (
-        <span className="text-sm text-muted-foreground hidden sm:inline">
+        <span className="hidden min-[360px]:inline text-sm text-muted-foreground">
           Hi, <span className="font-medium text-foreground">{firstName}</span>
         </span>
       )}
 
-      {/* Dropdown button + menu with user details and quick actions. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2 rounded-full hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -130,6 +143,7 @@ const UserProfileDropdown = () => {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="w-5 h-5 text-primary" />
               </div>
+
               <div className="min-w-0 flex-1">
                 {!isEditingName ? (
                   <div className="flex items-center gap-2">
@@ -194,6 +208,16 @@ const UserProfileDropdown = () => {
 
           <DropdownMenuSeparator />
 
+          {showDashboardLink && (
+            <DropdownMenuItem
+              onClick={handleGoToDashboard}
+              className="m-1 cursor-pointer focus:bg-primary/10 focus:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2 text-current" />
+              Go to My Dashboard
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuItem
             onClick={handleChangePassword}
             className="m-1 cursor-pointer focus:bg-primary/10 focus:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
@@ -229,7 +253,6 @@ type ProfileRowProps = {
   value: string;
 };
 
-// Small reusable row used to show one profile info item.
 const ProfileRow = ({ icon: Icon, label, value }: ProfileRowProps) => {
   return (
     <div className="flex items-center gap-2.5">

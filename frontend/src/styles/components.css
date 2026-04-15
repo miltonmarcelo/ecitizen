@@ -2408,6 +2408,12 @@
   color: var(--app-text-secondary);
 }
 
+.issue-photo-empty__text-optional {
+  font-size: var(--text-xxs);
+  font-style: italic;
+  color: var(--app-text-secondary);
+}
+
 .issue-photo-preview {
   width: 100%;
   max-height: 320px;

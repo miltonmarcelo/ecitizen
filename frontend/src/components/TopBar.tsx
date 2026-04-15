@@ -41,7 +41,14 @@ const TopBar = ({
           )}
 
           {title === "eCitizen" ? (
-            <BrandLogo size="sm" showText={true} />
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="flex items-center"
+              aria-label="Go to home page"
+            >
+              <BrandLogo size="sm" showText={true} />
+            </button>
           ) : (
             <span className="text-lg font-bold tracking-tight text-foreground">{title}</span>
           )}

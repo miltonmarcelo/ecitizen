@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
 import dublinMap from "@/assets/dublin-map.png";
 import BrandLogo from "@/components/common/BrandLogo";
+import UserProfileDropdown from "@/components/UserProfileDropdown";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -100,6 +101,10 @@ const HomePage = () => {
     return () => media.removeEventListener("change", handleChange);
   }, []);
 
+  useEffect(() => {
+    if (user) setMobileMenuOpen(false);
+  }, [user]);
+
   const goTo = (path: string, closeMenu = false) => {
     if (closeMenu) setMobileMenuOpen(false);
     navigate(path);
@@ -127,46 +132,59 @@ const HomePage = () => {
     <div className="home-page">
       <header className="home-page__header">
         <div className="home-page__header-inner">
-          <button onClick={() => goTo("/")} className="home-page__brand-button">
+          <button
+            onClick={() => goTo("/")}
+            className="home-page__brand-button"
+            type="button"
+          >
             <BrandLogo size="md" showText={true} />
           </button>
 
-          <div className="home-page__header-actions">
-            <div className="home-page__desktop-actions">
-              <button
-                onClick={() => goTo("/login")}
-                className="home-page__nav-btn home-page__nav-btn--secondary"
-              >
-                Log in
-              </button>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <UserProfileDropdown />
+            </div>
+          ) : (
+            <div className="home-page__header-actions">
+              <div className="home-page__desktop-actions">
+                <button
+                  onClick={() => goTo("/login")}
+                  className="home-page__nav-btn home-page__nav-btn--secondary"
+                  type="button"
+                >
+                  Log in
+                </button>
+
+                <button
+                  onClick={() => goTo("/register")}
+                  className="home-page__nav-btn home-page__nav-btn--accent"
+                  type="button"
+                >
+                  Register
+                </button>
+              </div>
 
               <button
-                onClick={() => goTo("/register")}
-                className="home-page__nav-btn home-page__nav-btn--accent"
+                type="button"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                className="home-page__menu-toggle"
               >
-                Register
+                {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
             </div>
-
-            <button
-              type="button"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="home-page__menu-toggle"
-            >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
+          )}
         </div>
 
-        {mobileMenuOpen && (
+        {!user && mobileMenuOpen && (
           <div className="home-page__mobile-menu">
             <div className="home-page__mobile-menu-inner">
               <div className="home-page__mobile-menu-actions">
                 <button
                   onClick={() => goTo("/login", true)}
                   className="home-page__mobile-btn home-page__mobile-btn--secondary"
+                  type="button"
                 >
                   Log in
                 </button>
@@ -174,6 +192,7 @@ const HomePage = () => {
                 <button
                   onClick={() => goTo("/register", true)}
                   className="home-page__mobile-btn home-page__mobile-btn--accent"
+                  type="button"
                 >
                   Register
                 </button>

@@ -893,10 +893,14 @@ const ReportIssuePage = () => {
               ) : (
                 <div className="issue-photo-empty">
                   <ImagePlus className="issue-photo-empty__icon" />
-                  <p className="issue-photo-empty__title">Take or choose one photo</p>
+                  <p className="issue-photo-empty__title">Snap it or pick one from your phone</p>
                   <p className="issue-photo-empty__text">
-                    Add a clear image that helps identify the issue
+                    Show us what you're seeing — any photo helps
                   </p>
+                  <p className="issue-photo-empty__text-optional">
+                    Skip if no photo is available.
+                  </p>
+
                 </div>
               )}
             </div>

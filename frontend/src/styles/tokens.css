@@ -5,6 +5,7 @@
 }
 
 :root {
+  --text-xxs:  clamp(0.6875rem, 0.65rem + 0.2vw, 0.8125rem);
   --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem); /* 12–14px  tiny labels    */
   --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);     /* 14–16px  buttons / nav  */
   --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem); /* 16–18px  body default   */
