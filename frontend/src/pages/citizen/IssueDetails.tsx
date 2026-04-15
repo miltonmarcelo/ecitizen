@@ -241,11 +241,6 @@ const IssueDetailsPage = () => {
           return;
         }
 
-        if (!(issue as any)?.photoPath && !(issue as any)?.hasPhoto) {
-          setPhotoUrl("");
-          return;
-        }
-
         const token = await user.getIdToken();
         const url = await getIssuePhotoUrl(issue.caseId, token);
         setPhotoUrl(url);
