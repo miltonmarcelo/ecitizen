@@ -104,7 +104,7 @@ const LoginPage = () => {
         className="login-page__card-wrap"
       >
         <SectionCard>
-          <form className="form-stack" onSubmit={handleLogin}>
+          <form className="form-stack" onSubmit={handleLogin} autoComplete="on">
             <div className="field-stack">
               <label htmlFor="email" className="label-text login-page__label">
                 Email
@@ -117,7 +117,10 @@ const LoginPage = () => {
                 className="app-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
               />
             </div>
 
