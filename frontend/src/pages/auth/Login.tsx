@@ -104,20 +104,20 @@ const LoginPage = () => {
         className="login-page__card-wrap"
       >
         <SectionCard>
-          <form className="form-stack" onSubmit={handleLogin} autoComplete="on">
+          <form className="form-stack" onSubmit={handleLogin} autoComplete="off">
             <div className="field-stack">
               <label htmlFor="email" className="label-text login-page__label">
                 Email
               </label>
               <input
                 id="email"
-                name="email"
+                name="user_email"
                 type="email"
                 placeholder="you@example.com"
                 className="app-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete="section-login email"
                 inputMode="email"
                 autoCapitalize="none"
                 spellCheck={false}
@@ -132,13 +132,13 @@ const LoginPage = () => {
               <div className="login-page__password-wrap">
                 <input
                   id="password"
-                  name="password"
+                  name="user_password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   className="app-input app-input--with-icon"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete="section-login current-password"
                 />
 
                 <button
