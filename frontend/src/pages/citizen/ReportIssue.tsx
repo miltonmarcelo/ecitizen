@@ -44,6 +44,12 @@ type AddressState = {
   county: string;
 };
 
+type ManualAddressCandidate = {
+  latitude: number;
+  longitude: number;
+  formatted: string;
+};
+
 const DEFAULT_ADDRESS: AddressState = {
   addressLine1: "",
   addressLine2: "",
@@ -157,6 +163,8 @@ const ReportIssuePage = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [manualAddressCandidate, setManualAddressCandidate] =
+    useState<ManualAddressCandidate | null>(null);
 
   const localAreaOptions = area ? localAreasByDublinArea[area] || [] : [];
   const isLocationConfirmed =
@@ -176,6 +184,7 @@ const ReportIssuePage = () => {
     setLatitude(null);
     setLongitude(null);
     setLocationMessage("");
+    setManualAddressCandidate(null);
     setAddress(DEFAULT_ADDRESS);
   };
 
@@ -252,6 +261,19 @@ const ReportIssuePage = () => {
     return {
       latitude: result.lat as number,
       longitude: result.lon as number,
+      formatted:
+        result.formatted ||
+        [
+          result.address_line1,
+          result.address_line2,
+          result.suburb || result.neighbourhood || result.district || result.city,
+          result.postcode,
+          result.city,
+          result.county,
+          result.country,
+        ]
+          .filter(Boolean)
+          .join(", "),
       suburb: suburb || result.suburb || result.neighbourhood || result.district || result.city || "",
       area: area || mapPostcodeToDublinArea(result.postcode || ""),
       city: "Dublin",
@@ -409,6 +431,7 @@ const ReportIssuePage = () => {
   };
 
   const handleDublinAreaChange = (value: string) => {
+    setManualAddressCandidate(null);
     updateAddress({
       area: value,
       suburb: "",
@@ -436,25 +459,48 @@ const ReportIssuePage = () => {
     try {
       setError("");
       setLocationLoading(true);
+      setLocationMessage("");
+      setManualAddressCandidate(null);
 
       const resolved = await forwardGeocodeFromGeoapify();
 
-      setLatitude(resolved.latitude);
-      setLongitude(resolved.longitude);
-      updateAddress({
-        suburb,
-        area,
-        city: "Dublin",
-        county: "Dublin",
+      setManualAddressCandidate({
+        latitude: resolved.latitude,
+        longitude: resolved.longitude,
+        formatted: resolved.formatted,
       });
-
-      setLocationMode("manual-confirmed");
-      setLocationMessage(LOCATION_MESSAGES.confirmed);
     } catch (err: any) {
+      setManualAddressCandidate(null);
       setError(err.message || "Unable to confirm the manual address.");
     } finally {
       setLocationLoading(false);
     }
+  };
+
+  const handleAcceptManualAddressCandidate = () => {
+    if (!manualAddressCandidate) return;
+
+    setError("");
+    setLatitude(manualAddressCandidate.latitude);
+    setLongitude(manualAddressCandidate.longitude);
+
+    updateAddress({
+      suburb,
+      area,
+      city: "Dublin",
+      county: "Dublin",
+    });
+
+    setLocationMode("manual-confirmed");
+    setLocationMessage(LOCATION_MESSAGES.confirmed);
+    setManualAddressCandidate(null);
+  };
+
+  const handleRejectManualAddressCandidate = () => {
+    setError("");
+    setLocationMessage("");
+    setManualAddressCandidate(null);
+    setLocationMode("manual-entry");
   };
 
   const handleTryAgainGps = () => {
@@ -466,6 +512,7 @@ const ReportIssuePage = () => {
   const handleEditManualAddress = () => {
     setError("");
     setLocationMessage("");
+    setManualAddressCandidate(null);
     setLocationMode("manual-entry");
   };
 
@@ -758,7 +805,10 @@ const ReportIssuePage = () => {
                       className="input-civic"
                       placeholder="House number and street"
                       value={addressLine1}
-                      onChange={(e) => updateAddress({ addressLine1: e.target.value })}
+                      onChange={(e) => {
+                        setManualAddressCandidate(null);
+                        updateAddress({ addressLine1: e.target.value });
+                      }}
                       autoComplete="address-line1"
                     />
                   </div>
@@ -771,7 +821,10 @@ const ReportIssuePage = () => {
                       className="input-civic"
                       placeholder="Apartment, building, or landmark (optional)"
                       value={addressLine2}
-                      onChange={(e) => updateAddress({ addressLine2: e.target.value })}
+                      onChange={(e) => {
+                        setManualAddressCandidate(null);
+                        updateAddress({ addressLine2: e.target.value });
+                      }}
                       autoComplete="address-line2"
                     />
                   </div>
@@ -802,7 +855,10 @@ const ReportIssuePage = () => {
                       <select
                         className="input-civic"
                         value={suburb}
-                        onChange={(e) => updateAddress({ suburb: e.target.value })}
+                        onChange={(e) => {
+                          setManualAddressCandidate(null);
+                          updateAddress({ suburb: e.target.value });
+                        }}
                         disabled={!area}
                       >
                         <option value="">Select Local Area</option>
@@ -824,6 +880,50 @@ const ReportIssuePage = () => {
                 >
                   {locationLoading ? "Confirming..." : "Confirm Location"}
                 </button>
+
+                {manualAddressCandidate && (
+                  <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 space-y-4">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        We found this address
+                      </p>
+                      <p className="text-sm text-foreground mt-1">
+                        {manualAddressCandidate.formatted || "Address found"}
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      Please confirm if this matches the address you entered.
+                    </p>
+
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleAcceptManualAddressCandidate}
+                        className="btn-primary-civic w-full"
+                      >
+                        Yes, confirm this address
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRejectManualAddressCandidate}
+                        className="btn-outline-civic w-full"
+                      >
+                        No, try again
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleUseCurrentLocation}
+                        disabled={locationLoading}
+                        className="text-sm text-primary hover:underline w-full text-center"
+                      >
+                        Use current location instead
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

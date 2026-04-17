@@ -1,0 +1,47 @@
+$kind: http-request
+description: Exact first Geoapify call from the current manual address flow.
+  Fill the collection variables, then run this request.
+url: https://api.geoapify.com/v1/geocode/search?text={{searchText}}&filter=countrycode:ie&apiKey={{geoapifyApiKey}}
+method: GET
+queryParams:
+  text: "{{searchText}}"
+  filter: countrycode:ie
+  apiKey: "{{geoapifyApiKey}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const searchText = [
+        pm.collectionVariables.get('addressLine1'),
+        pm.collectionVariables.get('addressLine2'),
+        pm.collectionVariables.get('suburb'),
+        pm.collectionVariables.get('area'),
+        pm.collectionVariables.get('city'),
+        pm.collectionVariables.get('county')
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      pm.collectionVariables.set('searchText', searchText);
+      console.log('searchText:', searchText);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200', function () {
+        pm.response.to.have.status(200);
+      });
+
+      const json = pm.response.json();
+      console.log('Geoapify response:', json);
+
+      const first = json?.features?.[0]?.properties;
+      if (first) {
+        pm.collectionVariables.set('latitude', String(first.lat ?? ''));
+        pm.collectionVariables.set('longitude', String(first.lon ?? ''));
+        pm.collectionVariables.set('formattedAddress', first.formatted || '');
+      }
+
+      pm.test('Response parsed', function () {
+        pm.expect(json).to.be.an('object');
+      });
+    language: text/javascript
+order: 1000

@@ -2,6 +2,13 @@
 workspace:
   id: 213f2414-ae97-423d-8416-da8da53fe616
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/eCitizen Geoapify Exact First Call: 582dfe72-6a0c-410d-8039-488cbf8aabe1
+    ../postman/collections/eCitizen Manual Address Flow: bd2f82a8-1593-4031-8b13-fc923b92ddc7
+
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
 #localResources:

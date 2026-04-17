@@ -1,0 +1,49 @@
+$kind: collection
+description: >-
+  Postman collection to verify the current manual address flow in eCitizen.
+
+
+  Current frontend behavior:
+
+  1. Manual address confirmation calls Geoapify forward geocoding directly from
+  the frontend.
+
+  2. The first result is accepted.
+
+  3. lat and lon are stored in frontend state.
+
+  4. On submit, the frontend posts the issue to the backend including latitude
+  and longitude.
+
+
+  Before running:
+
+  1. Set baseUrl
+
+  2. Set geoapifyApiKey
+
+  3. Set authToken with a valid Firebase Bearer token if you want to test issue
+  creation
+
+  4. Adjust address variables as needed
+variables:
+  baseUrl: https://ecitizen-backend.onrender.com
+  geoapifyApiKey: ""
+  authToken: ""
+  addressLine1: 12 O'Connell Street Lower
+  addressLine2: ""
+  suburb: North City
+  area: Dublin 1
+  city: Dublin
+  county: Dublin
+  searchText: ""
+  encodedSearchText: ""
+  latitude: "53.3498053"
+  longitude: "-6.2603097"
+  title: Manual address verification test
+  description: Testing the current manual address confirmation flow from Postman.
+  categoryId: "1"
+  createdCaseId: ""
+  geoapifyPostcode: ""
+  geoapifySuburb: ""
+  geoapifyFormatted: ""
