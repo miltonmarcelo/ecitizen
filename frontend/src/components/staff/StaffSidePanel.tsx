@@ -116,7 +116,7 @@ const StaffSidePanel = ({ issues, currentStaffId }: StaffSidePanelProps) => {
           const category = getIssueCategoryName(issue);
           const daysOpen = getIssueDaysOpen(issue);
 
-          return isAttentionStatus(status) && (category === ATTENTION_CATEGORY || daysOpen > 5);
+          return isAttentionStatus(status) && (category === ATTENTION_CATEGORY || daysOpen >= 5);
         })
         .map((issue) => {
           const category = getIssueCategoryName(issue);

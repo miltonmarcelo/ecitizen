@@ -45,8 +45,23 @@ const StaffDashboard = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [assignedFilter, setAssignedFilter] = useState("all");
   const currentStaffId = appUser?.staffProfile?.id ?? null;
+  const defaultAssignedFilter = useMemo(() => {
+    if (appUser?.role !== "STAFF" || currentStaffId === null) {
+      return "all";
+    }
+
+    const hasAssignedIssues = issues.some(
+      (issue) => (issue.staff?.id ?? null) === currentStaffId
+    );
+
+    return hasAssignedIssues ? String(currentStaffId) : "all";
+  }, [appUser?.role, currentStaffId, issues]);
+  const [assignedFilter, setAssignedFilter] = useState("all");
+
+  useEffect(() => {
+    setAssignedFilter(defaultAssignedFilter);
+  }, [defaultAssignedFilter]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -169,13 +184,13 @@ const StaffDashboard = () => {
   const hasActiveFilters =
     statusFilter !== "all" ||
     categoryFilter !== "all" ||
-    assignedFilter !== "all" ||
+    assignedFilter !== defaultAssignedFilter ||
     searchQuery.trim() !== "";
 
   const clearFilters = () => {
     setStatusFilter("all");
     setCategoryFilter("all");
-    setAssignedFilter("all");
+    setAssignedFilter(defaultAssignedFilter);
     setSearchQuery("");
   };
 
@@ -248,7 +263,7 @@ const StaffDashboard = () => {
 
               <Select value={assignedFilter} onValueChange={setAssignedFilter}>
                 <SelectTrigger className="staff-select-trigger staff-select-trigger--wide">
-                  <SelectValue placeholder="Assigned to" />
+                  <SelectValue placeholder="My issues" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Staff</SelectItem>

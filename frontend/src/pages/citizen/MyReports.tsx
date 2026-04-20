@@ -238,12 +238,12 @@ const MyReportsPage = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start min-[540px]:flex min-[540px]:flex-wrap min-[540px]:items-center">
+            <div className="relative min-w-0">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as "All" | IssueStatus)}
-                className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+                className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 w-full"
               >
                 <option value="All">Status</option>
                 {ALL_ISSUE_STATUSES.map((status) => (
@@ -258,11 +258,11 @@ const MyReportsPage = () => {
               />
             </div>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+                className="appearance-none text-xs font-medium rounded-lg border border-border bg-card pl-3 pr-7 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 w-full"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -276,29 +276,31 @@ const MyReportsPage = () => {
               />
             </div>
 
-            {hasActiveFilters && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("All");
-                  setCategoryFilter("All");
-                }}
-                className="text-xs text-destructive font-medium hover:underline"
-              >
-                Clear filter
-              </button>
-            )}
+            <div className="flex items-center justify-end min-h-[36px] min-[540px]:order-3">
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("All");
+                    setCategoryFilter("All");
+                  }}
+                  className="text-xs text-destructive font-medium hover:underline whitespace-nowrap"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
 
-            <div className="relative ml-auto">
+            <div className="relative col-span-3 min-[540px]:col-span-1 min-[540px]:ml-auto min-[540px]:order-4">
               <button
                 onClick={() => setShowSort((prev) => !prev)}
-                className="text-xs font-medium rounded-lg border border-border bg-card px-3 py-2 text-foreground hover:bg-muted transition-colors flex items-center gap-1"
+                className="text-xs font-medium rounded-lg border border-border bg-card px-3 py-2 text-foreground hover:bg-muted transition-colors flex items-center gap-1 w-fit"
               >
                 {sort} <ChevronDown size={12} />
               </button>
 
               {showSort && (
-                <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
+                <div className="absolute left-0 min-[540px]:left-auto min-[540px]:right-0 mt-1 w-40 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
                   {SORT_OPTIONS.map((option) => (
                     <button
                       key={option}
