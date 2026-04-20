@@ -340,7 +340,13 @@ export default function AdminUsers() {
                   <TableCell className="text-sm whitespace-nowrap">{row.email}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={row.role === "ADMIN" ? "default" : "secondary"}
+                      variant={
+                        row.role === "ADMIN"
+                          ? "default"
+                          : row.role === "STAFF"
+                          ? "secondary"
+                          : "outline"
+                      }
                       className="text-xs"
                     >
                       {roleLabel(row.role)}
