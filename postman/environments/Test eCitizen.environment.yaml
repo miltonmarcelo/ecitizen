@@ -1,5 +1,0 @@
-name: Test eCitizen
-values:
-  - key: baseUrl
-    value: ''
-    enabled: true

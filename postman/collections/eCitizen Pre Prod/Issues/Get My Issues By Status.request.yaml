@@ -1,9 +1,0 @@
-$kind: http-request
-name: Get My Issues By Status
-url: "{{baseUrl}}/api/issues/my?status=CREATED"
-method: GET
-headers:
-  Authorization: Bearer {{firebaseToken}}
-queryParams:
-  status: CREATED
-order: 1162338199551709
