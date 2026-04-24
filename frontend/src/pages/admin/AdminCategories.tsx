@@ -104,6 +104,7 @@ export default function AdminCategories() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    // Applies search + status filters first, then shared compare sort.
     return [...categories]
       .filter((item) => {
         const matchesSearch =
@@ -172,6 +173,7 @@ export default function AdminCategories() {
         );
         toast.success(data.message || "Category updated successfully");
       } else {
+        // New categories are created as active by default for immediate use.
         setCreating(true);
         const data = await adminFetch<{ category: AdminCategory; message: string }>(user, "/api/admin/categories", {
           method: "POST",
@@ -206,12 +208,14 @@ export default function AdminCategories() {
       setSaving((current) => ({ ...current, [category.id]: true }));
 
       if (action === "delete") {
+        // Delete path removes row locally after backend confirms hard delete.
         await adminFetch<{ message: string }>(user, `/api/admin/categories/${category.id}`, {
           method: "DELETE",
         });
         setCategories((current) => current.filter((item) => item.id !== category.id));
         toast.success("Category deleted successfully");
       } else {
+        // Enable/disable path uses partial update and swaps in returned row.
         const data = await adminFetch<{ category: AdminCategory; message: string }>(
           user,
           `/api/admin/categories/${category.id}`,

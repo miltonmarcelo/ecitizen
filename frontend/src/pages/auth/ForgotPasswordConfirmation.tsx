@@ -8,6 +8,7 @@ import SectionCard from "@/components/common/SectionCard";
 const ForgotPasswordConfirmationPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Reads email from navigation state, with a safe fallback when opened directly.
   const email = location.state?.email || "";
 
   return (

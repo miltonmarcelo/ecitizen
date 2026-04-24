@@ -9,6 +9,7 @@ interface StaffSidePanelProps {
 }
 
 const RESOLVED_STATUSES = new Set(["RESOLVED", "CLOSED"]);
+// Hazard cases get flagged earlier in the attention panel.
 const ATTENTION_CATEGORY = "hazards";
 
 function normalizeStatus(status?: string | null) {
@@ -50,6 +51,7 @@ function getAssignedStaffId(issue: ApiStaffIssue) {
     assignedTo?: { id?: number | null } | null;
   };
 
+  // Supports multiple backend response shapes used across staff issue endpoints.
   return raw.staff?.id ?? raw.staffId ?? raw.assignedStaffId ?? raw.assignedTo?.id ?? null;
 }
 
@@ -59,6 +61,7 @@ function getIssueStatus(issue: ApiStaffIssue) {
     statusName?: string | null;
   };
 
+  // Normalizes status from legacy and current fields into one comparable string.
   return normalizeStatus(raw.status ?? raw.statusLabel ?? raw.statusName ?? "");
 }
 
@@ -69,6 +72,7 @@ function getIssueCategoryName(issue: ApiStaffIssue) {
   };
 
   if (typeof raw.category === "string") return normalizeCategory(raw.category);
+  // Handles both nested category objects and flat category name fields.
   return normalizeCategory(raw.category?.name ?? raw.categoryName ?? "");
 }
 
@@ -78,8 +82,7 @@ function getIssueCreatedAt(issue: ApiStaffIssue) {
     submittedAt?: string | null;
     created_at?: string | null;
   };
-  
-
+  // Falls back across known timestamp field names from different API versions.
   return raw.createdAt ?? raw.reportedAt ?? raw.submittedAt ?? raw.created_at ?? "";
 }
 
@@ -109,6 +112,7 @@ const StaffSidePanel = ({ issues, currentStaffId }: StaffSidePanelProps) => {
   );
 
   const needsAttention = useMemo(
+    // Builds a sorted list of open hazard or aging cases for quick triage.
     () =>
       myIssues
         .filter((issue) => {

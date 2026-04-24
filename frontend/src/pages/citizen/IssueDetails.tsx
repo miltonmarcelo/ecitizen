@@ -139,6 +139,7 @@ const CITIZEN_NOTICE_CONTENT: Record<
 };
 
 const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
+  // Tracks the first known date for each status from history events.
   const statusDates: Record<string, string> = {
     CREATED: formatDate(issue.createdAt),
   };
@@ -153,6 +154,7 @@ const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
     }
   }
 
+  // Cancelled reports use a shorter timeline path than the normal status flow.
   if (issue.status === "CANCELLED") {
     return [
       {
@@ -181,6 +183,7 @@ const buildTimeline = (issue: IssueDetails): TimelineStep[] => {
 };
 
 const getNoticeConfig = (issue: IssueDetails) => {
+  // Hides the generic review notice when staff notes already provide a specific update.
   if (issue.status === "UNDER_REVIEW" && issue.notes?.length > 0) return null;
   return CITIZEN_NOTICE_CONTENT[issue.status] || null;
 };
@@ -209,6 +212,7 @@ const IssueDetailsPage = () => {
           return;
         }
 
+        // Sends Firebase token so backend can verify the citizen can read this issue.
         const token = await user.getIdToken();
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/issues/${issueId}`, {
           method: "GET",
@@ -241,6 +245,7 @@ const IssueDetailsPage = () => {
           return;
         }
 
+        // Gets a signed photo URL using the same auth token.
         const token = await user.getIdToken();
         const url = await getIssuePhotoUrl(issue.caseId, token);
         setPhotoUrl(url);

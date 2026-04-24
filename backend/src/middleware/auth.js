@@ -9,12 +9,14 @@ async function auth(req, res, next) {
       return res.status(401).json({ message: "Missing or invalid token" });
     }
 
+    // Verifies Firebase token and gets trusted identity claims.
     const token = header.split(" ")[1];
     const decoded = await admin.auth().verifyIdToken(token);
 
     let user = null;
 
     if (decoded.uid) {
+      // Finds app user by Firebase UID first, with email fallback for migrated accounts.
       user = await prisma.user.findFirst({
         where: {
           OR: [
@@ -29,11 +31,13 @@ async function auth(req, res, next) {
     }
 
     if (user && user.isActive === false) {
+      // Blocks login when an account was disabled in the app database.
       return res.status(403).json({
         message: "This account has been disabled",
       });
     }
 
+    // Shares Firebase claims and app user profile with downstream route handlers.
     req.firebaseUser = decoded;
     req.user = user;
     next();

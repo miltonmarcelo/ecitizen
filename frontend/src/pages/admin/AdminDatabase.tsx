@@ -91,6 +91,7 @@ export default function AdminDatabase() {
       setLoading(true);
       setError("");
 
+      // Pulls all admin tables in parallel to keep explorer data consistent.
       const [
         usersData,
         staffData,
@@ -135,6 +136,7 @@ export default function AdminDatabase() {
       {
         key: "users",
         name: "Users",
+        // Flattens nested API objects into table-friendly key/value rows.
         rows: users.map((item) => ({
           id: item.id,
           firebaseUid: item.firebaseUid,
@@ -242,6 +244,7 @@ export default function AdminDatabase() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
+    // Runs global text search across every visible cell in the selected table.
     return [...(selectedTableDef?.rows || [])]
       .filter((row) =>
         !q
@@ -264,6 +267,7 @@ export default function AdminDatabase() {
   );
 
   const switchTable = (key: DbTableKey) => {
+    // Resets search, sorting, and pagination when switching table context.
     setSelectedTable(key);
     setSearch("");
     setSortCol("");
@@ -298,6 +302,7 @@ export default function AdminDatabase() {
       );
     }
 
+    // Formats known timestamp columns into readable date/time strings.
     if (column && isDateColumn(column)) {
       return formatDateTime(value) || "—";
     }

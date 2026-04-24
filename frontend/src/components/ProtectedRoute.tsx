@@ -19,11 +19,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-
+  // Redirects authenticated admin and staff users to their own dashboards.
   if (appUser?.role === "ADMIN") {
     return <Navigate to="/admin/dashboard" replace />;
   }
-
   if (appUser?.role === "STAFF") {
     return <Navigate to="/staff/dashboard" replace />;
   }

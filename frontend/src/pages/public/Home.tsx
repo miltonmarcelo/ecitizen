@@ -17,6 +17,7 @@ const fadeUp = {
   }),
 };
 
+// Demo map pins are static and not tied to live issue coordinates.
 const MAP_PINS = [
   { top: "18%", left: "10%", colorClass: "home-page__pin-dot--success", label: "Pothole • Resolved" },
   { top: "42%", left: "28%", colorClass: "home-page__pin-dot--warning", label: "Street Light • In Progress" },
@@ -67,6 +68,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchPublicStats = async () => {
       try {
+        // Loads public summary stats without requiring user auth.
         const response = await fetch(`${API_BASE_URL}/api/issues/public-stats/summary`);
         const data = await response.json();
 
@@ -89,6 +91,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 360px)");
+    // Auto-closes the mobile menu when the viewport switches to a larger layout.
     const closeMenu = () => setMobileMenuOpen(false);
 
     if (media.matches) closeMenu();
@@ -112,6 +115,7 @@ const HomePage = () => {
 
   const goToReport = () => {
     if (loading) return;
+    // Sends guests to login first, while logged-in users go straight to report flow.
     navigate(user ? "/report" : "/login");
   };
 
@@ -120,6 +124,7 @@ const HomePage = () => {
   const formatDays = (value: number) => `${Math.round(value)}d`;
 
   const statCards = useMemo(
+    // Builds display-ready values once per stats change.
     () => [
       { value: formatNumber(stats.totalIssues), label: "Issues Reported" },
       { value: formatPercentage(stats.resolutionRate), label: "Resolution Rate" },

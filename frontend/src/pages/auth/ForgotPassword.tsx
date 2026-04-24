@@ -18,6 +18,7 @@ const ForgotPasswordPage = () => {
     const fallbackUrl = `${window.location.origin}/login`;
     const configuredUrl = import.meta.env.VITE_PASSWORD_RESET_CONTINUE_URL;
 
+    // Uses configured continue URL when set, otherwise falls back to local login route.
     return {
       url: configuredUrl || fallbackUrl,
       handleCodeInApp: false,
@@ -38,6 +39,7 @@ const ForgotPasswordPage = () => {
     try {
       setIsSubmitting(true);
 
+      // Requests Firebase to send reset email with the selected continue URL.
       await sendPasswordResetEmail(auth, trimmedEmail, actionCodeSettings);
 
       navigate("/forgot-password-confirmation", {

@@ -19,12 +19,14 @@ const StaffRoute = ({ children }: StaffRouteProps) => {
   }
 
   if (!user) {
+    // Keeps the original target route so login can return here after auth.
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // Allows both STAFF and ADMIN into staff pages.
   if (!appUser || (appUser.role !== "STAFF" && appUser.role !== "ADMIN")) {
-  return <Navigate to="/dashboard" replace />;
-}
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return <>{children}</>;
 };

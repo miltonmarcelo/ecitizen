@@ -25,6 +25,7 @@ const emptyCounts: AdminCounts = {
   history: 0,
 };
 
+// Static quick links for the main admin modules.
 const quickAccess = [
   {
     title: "Manage Users",
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
 
         setError("");
 
+        // Loads overview and users together so cards and active-user count stay aligned.
         const [overviewData, usersData] = await Promise.all([
           adminFetch<{ counts: AdminCounts }>(user, "/api/admin/overview"),
           adminFetch<{ users: AdminUser[] }>(user, "/api/admin/users"),
@@ -110,6 +112,7 @@ export default function AdminDashboard() {
   }, [authLoading, loadDashboardData]);
 
   const activeUsers = useMemo(
+    // Active users are derived from the fetched user table, not from overview counts.
     () => users.filter((item) => item.isActive).length,
     [users]
   );

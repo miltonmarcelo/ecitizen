@@ -115,6 +115,7 @@ const timelineColorMap: Record<string, string> = {
 };
 
 function getTimelineTitle(item: IssueHistory): string {
+  // Prefers staff-written comments over generated event text.
   if (item.comment?.trim()) {
     return item.comment;
   }
@@ -163,8 +164,10 @@ const StaffIssueDetails = () => {
         return;
       }
 
+      // Reuses one Firebase token across all protected staff endpoints.
       const token = await user.getIdToken();
 
+      // Loads issue, categories, and assignees together so controls stay in sync.
       const [issueResponse, categoriesResponse, staffResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/issues/${issueId}`, {
           method: "GET",
@@ -236,6 +239,7 @@ const StaffIssueDetails = () => {
           return;
         }
 
+        // Gets signed photo URL with auth token to respect file access rules.
         const token = await user.getIdToken();
         const url = await getIssuePhotoUrl(issue.caseId, token);
         setPhotoUrl(url);
@@ -248,6 +252,7 @@ const StaffIssueDetails = () => {
   }, [user, issue?.caseId]);
 
   const handleSaveStatus = async () => {
+    // Skips API call when nothing changed or required data is missing.
     if (!issue || !currentStatus || currentStatus === issue.status || !user) {
       return;
     }
@@ -284,6 +289,7 @@ const StaffIssueDetails = () => {
   };
 
   const handleSaveCategory = async () => {
+    // Skips category update when selected value matches current issue category.
     if (!issue || !currentCategoryId || String(issue.categoryId || "") === currentCategoryId || !user) {
       return;
     }
@@ -335,6 +341,7 @@ const StaffIssueDetails = () => {
       setError("");
 
       const token = await user.getIdToken();
+      // Converts dropdown value to nullable staff ID for backend assignment API.
       const nextStaffId = currentAssigneeId === "unassigned" ? null : Number(currentAssigneeId);
 
       const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/assignment`, {
@@ -377,6 +384,7 @@ const StaffIssueDetails = () => {
       setNoteSaving(true);
       setError("");
 
+      // Saves trimmed staff note text so timeline updates stay clean.
       const token = await user.getIdToken();
 
       const response = await fetch(`${API_BASE_URL}/api/issues/${issue.caseId}/notes`, {
@@ -411,12 +419,14 @@ const StaffIssueDetails = () => {
   }, [issue]);
 
   const assignmentUnchanged = useMemo(() => {
+    // Disables "Save Assignment" until assignee value actually changes.
     if (!issue) return true;
     const existingAssignment = issue.staff?.id ? String(issue.staff.id) : "unassigned";
     return currentAssigneeId === existingAssignment;
   }, [issue, currentAssigneeId]);
 
   const categoryUnchanged = useMemo(() => {
+    // Disables "Save Category" when selected category is already applied.
     if (!issue) return true;
     return String(issue.categoryId || "") === currentCategoryId;
   }, [issue, currentCategoryId]);

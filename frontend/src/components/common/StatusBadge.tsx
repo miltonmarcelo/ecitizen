@@ -14,6 +14,7 @@ type StatusToken = {
 };
 
 const STATUS_TOKENS: Record<string, StatusToken> = {
+  // Includes synonym keys so different API status formats map to one badge style.
   created: {
     label: "Created",
     bg: "var(--status-created-bg)",
@@ -148,6 +149,7 @@ function normalizeStatus(status: string | null | undefined): string {
   return status
     .trim()
     .toLowerCase()
+    // Normalizes snake_case and kebab-case into the same lookup format.
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
 }
@@ -159,6 +161,7 @@ export default function StatusBadge({
   const normalized = normalizeStatus(status);
   const token = STATUS_TOKENS[normalized];
 
+  // Falls back to a neutral badge when a status does not exist in token map.
   if (!token) {
     return (
       <span

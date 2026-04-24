@@ -40,12 +40,14 @@ const LoginPage = () => {
     try {
       setLoading(true);
 
+      // Keeps session only for this tab unless "Remember me" is checked.
       await setPersistence(
         auth,
         remember ? browserLocalPersistence : browserSessionPersistence
       );
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Sends a fresh Firebase token so backend can sync role/profile safely.
       const token = await userCredential.user.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
@@ -62,6 +64,7 @@ const LoginPage = () => {
         throw new Error(data.message || "Failed to sync user");
       }
 
+      // Redirects by role so admins and staff land on their own dashboards.
       if (data.user?.role === "ADMIN") {
         navigate("/admin/dashboard", { replace: true });
       } else if (data.user?.role === "STAFF") {

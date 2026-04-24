@@ -42,12 +42,14 @@ const StaffDashboardHeader = ({
   const navigate = useNavigate();
   const { appUser, logout } = useAuth();
 
+  // Switches profile label text based on current app role.
   const isAdmin = appUser?.role === "ADMIN";
 
   const staffProfile = {
     name: appUser?.fullName || "Staff User",
     role: isAdmin ? "Administrator" : "Operational Staff",
     email: appUser?.email || "staff.user@ecitizen.ie",
+    // Uses real staff ID when available, otherwise shows a placeholder employee code.
     employeeId: appUser?.staffProfile?.id
       ? `STAFF-${appUser.staffProfile.id}`
       : "EMP-00421",
@@ -55,6 +57,7 @@ const StaffDashboardHeader = ({
 
   const handleSignOut = async () => {
     try {
+      // Calls shared logout so auth guards can redirect to public pages.
       await logout();
       navigate("/");
     } catch (error) {

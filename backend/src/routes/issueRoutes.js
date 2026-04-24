@@ -16,6 +16,7 @@ async function generateUniqueCaseId() {
   let caseId;
   let exists = true;
 
+  // Loops until a generated case id is not already used in the database.
   while (exists) {
     caseId = generateCaseId();
 
@@ -46,6 +47,7 @@ function isStaffOrAdmin(user) {
 }
 
 function buildIssuePhotoPath(firebaseUid, caseId) {
+  // Keeps upload and download paths consistent for issue photos.
   return `issuePhotos/${firebaseUid}/${caseId}/report.jpg`;
 }
 
@@ -120,6 +122,7 @@ router.post("/", auth, async (req, res) => {
 
     const caseId = await generateUniqueCaseId();
 
+    // Creates issue and first history record together so audit data is never missing.
     const issue = await prisma.$transaction(async (tx) => {
       const newIssue = await tx.issue.create({
         data: {
@@ -178,6 +181,7 @@ router.get("/my", auth, async (req, res) => {
     const normalizedStatus =
       status && ALL_ISSUE_STATUSES.includes(String(status)) ? String(status) : undefined;
 
+    // Builds one Prisma where object from optional search and filter params.
     const where = {
       citizenId: req.user.id,
       ...(normalizedStatus ? { status: normalizedStatus } : {}),
@@ -243,6 +247,7 @@ router.get("/", auth, async (req, res) => {
         ? String(assignment)
         : "all";
 
+    // Builds base filter for staff/admin issue list queries.
     const where = {
       ...(normalizedStatus ? { status: normalizedStatus } : {}),
       ...(category
@@ -270,6 +275,7 @@ router.get("/", auth, async (req, res) => {
     };
 
     if (normalizedAssignment === "mine") {
+      // "mine" requires a linked staff profile id.
       if (!req.user?.staffProfile?.id) {
         return res.status(400).json({
           message: "Current user does not have a staff profile",
@@ -335,6 +341,7 @@ router.get("/", auth, async (req, res) => {
 
 router.get("/public-stats/summary", async (req, res) => {
   try {
+    // Loads all datasets needed for public KPI cards in parallel.
     const [totalIssues, resolvedIssues, closedHistoryItems] = await Promise.all([
       prisma.issue.count(),
       prisma.issue.count({
@@ -362,6 +369,7 @@ router.get("/public-stats/summary", async (req, res) => {
 
     const firstClosedByIssueId = new Map();
 
+    // Keeps earliest close timestamp per issue so close-time average is not duplicated.
     for (const item of closedHistoryItems) {
       if (!firstClosedByIssueId.has(item.issueId)) {
         firstClosedByIssueId.set(item.issueId, item.changedAt);
@@ -396,6 +404,7 @@ router.get("/public-stats/summary", async (req, res) => {
 
         return duration >= 0 ? duration : null;
       })
+      // Drops invalid or negative durations before computing averages.
       .filter((value) => value !== null);
 
     const averageCloseMs =
@@ -443,6 +452,7 @@ router.get("/:caseId/photo-url", auth, async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
+    // Citizens can read only their own photo URLs.
     if (isCitizen(req.user) && issue.citizenId !== req.user.id) {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -467,6 +477,7 @@ router.get("/:caseId/photo-url", auth, async (req, res) => {
 
     const [url] = await file.getSignedUrl({
       action: "read",
+      // Signed URL is short-lived to reduce accidental link sharing risk.
       expires: Date.now() + 15 * 60 * 1000,
     });
 
@@ -524,6 +535,7 @@ router.get("/:caseId", auth, async (req, res) => {
             },
           },
           orderBy: {
+            // Shows newest notes first for staff and citizen views.
             createdAt: "desc",
           },
         },
@@ -539,6 +551,7 @@ router.get("/:caseId", auth, async (req, res) => {
             },
           },
           orderBy: {
+            // Keeps timeline events in chronological order.
             changedAt: "asc",
           },
         },
@@ -594,12 +607,14 @@ router.patch("/:caseId/status", auth, async (req, res) => {
     }
 
     if (existingIssue.status === status) {
+      // Returns early when status is unchanged to skip extra writes.
       return res.status(200).json({
         message: "Issue status unchanged",
         issue: existingIssue,
       });
     }
 
+    // Writes status update and status history entry in one transaction.
     const issue = await prisma.$transaction(async (tx) => {
       const updatedIssue = await tx.issue.update({
         where: { caseId },
@@ -670,12 +685,14 @@ router.patch("/:caseId/category", auth, async (req, res) => {
     }
 
     if (existingIssue.categoryId === parsedCategoryId) {
+      // Returns early when category is unchanged.
       return res.status(200).json({
         message: "Issue category unchanged",
         issue: existingIssue,
       });
     }
 
+    // Updates category and logs audit comment in one transaction.
     const issue = await prisma.$transaction(async (tx) => {
       const updatedIssue = await tx.issue.update({
         where: { caseId },
@@ -737,6 +754,7 @@ router.post("/:caseId/notes", auth, async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
+    // Saves note, bumps issue updatedAt, and writes history in one transaction.
     await prisma.$transaction(async (tx) => {
       await tx.note.create({
         data: {
@@ -791,6 +809,7 @@ router.patch("/:caseId/assignment", auth, async (req, res) => {
 
     const { caseId } = req.params;
     const rawStaffId = req.body.staffId;
+    // Accepts null to unassign, otherwise parses numeric staff id.
     const nextStaffId = rawStaffId === null ? null : Number(rawStaffId);
 
     if (rawStaffId !== null && !nextStaffId) {
@@ -820,6 +839,7 @@ router.patch("/:caseId/assignment", auth, async (req, res) => {
     let nextStaff = null;
 
     if (nextStaffId) {
+      // Loads target assignee and checks active status before assigning.
       nextStaff = await prisma.staff.findUnique({
         where: { id: nextStaffId },
         include: {
@@ -841,6 +861,7 @@ router.patch("/:caseId/assignment", auth, async (req, res) => {
     }
 
     if ((existingIssue.staff?.id || null) === (nextStaff?.id || null)) {
+      // Returns early when assignment is unchanged.
       return res.status(200).json({
         message: "Issue assignment unchanged",
         issue: existingIssue,
@@ -851,6 +872,7 @@ router.patch("/:caseId/assignment", auth, async (req, res) => {
     const previousAssigneeName = existingIssue.staff?.user?.fullName || null;
     const nextAssigneeName = nextStaff?.user?.fullName || null;
 
+    // Updates assignee and logs assignment history together.
     const issue = await prisma.$transaction(async (tx) => {
       const updatedIssue = await tx.issue.update({
         where: { caseId },

@@ -19,9 +19,11 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   }
 
   if (!user) {
+    // Keeps the original target route so login can return here after auth.
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // Blocks non-admin users even when they are already authenticated.
   if (!appUser || appUser.role !== "ADMIN") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">

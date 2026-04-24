@@ -20,6 +20,7 @@ type FormErrors = {
 const MIN_MESSAGE_LENGTH = 30;
 const EMAILJS_SERVICE_ID = "service_u0wnwlc";
 const EMAILJS_TEMPLATE_ID = "template_sdwe1a3";
+// EmailJS and reCAPTCHA keys come from env so secrets stay out of source code.
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
@@ -86,6 +87,7 @@ const ContactPage = () => {
 
     Object.keys(newErrors).forEach((key) => {
       const typedKey = key as keyof FormErrors;
+      // Removes empty entries so only real validation errors stay in state.
       if (!newErrors[typedKey]) delete newErrors[typedKey];
     });
 
@@ -141,6 +143,7 @@ const ContactPage = () => {
     try {
       setIsSubmitting(true);
 
+      // Gets an invisible reCAPTCHA token before sending to EmailJS.
       const token = await recaptchaRef.current?.executeAsync();
 
       if (!token) {
@@ -158,6 +161,7 @@ const ContactPage = () => {
           name: formData.name.trim(),
           email: formData.email.trim(),
           message: formData.message.trim(),
+          // Passes the captcha token so EmailJS can verify human submission.
           "g-recaptcha-response": token,
         },
         {

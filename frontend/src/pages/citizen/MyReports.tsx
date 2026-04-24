@@ -76,6 +76,7 @@ const SORTERS: Record<SortOption, (a: ApiIssue, b: ApiIssue) => number> = {
 };
 
 const getVisiblePages = (currentPage: number, totalPages: number) => {
+  // Keeps pagination compact by showing a sliding 5-page window.
   if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
@@ -106,6 +107,7 @@ const MyReportsPage = () => {
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
+    // Applies status from URL query so dashboard links can pre-filter this page.
     if (statusParam && ALL_ISSUE_STATUSES.includes(statusParam as IssueStatus)) {
       setStatusFilter(statusParam as IssueStatus);
     }
@@ -124,6 +126,7 @@ const MyReportsPage = () => {
           return;
         }
 
+        // Adds Firebase token so only the logged-in citizen can fetch their reports.
         const token = await user.getIdToken();
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/issues/my`, {
           method: "GET",
@@ -149,10 +152,12 @@ const MyReportsPage = () => {
   }, [user, authLoading]);
 
   useEffect(() => {
+    // Resets pagination when filters or sort change to avoid empty pages.
     setCurrentPage(1);
   }, [search, statusFilter, categoryFilter, sort]);
 
   const categories = useMemo(() => {
+    // Builds unique category filter options from the loaded issue list.
     const unique = [
       ...new Set(
         issues
@@ -167,6 +172,7 @@ const MyReportsPage = () => {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
 
+    // Applies search, status, category, then sorting in one derived list.
     return issues
       .filter((issue) => {
         const categoryName = getCategoryName(issue);
@@ -189,6 +195,7 @@ const MyReportsPage = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
 
   const paginatedIssues = useMemo(() => {
+    // Slices the already filtered list into the current page window.
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filtered.slice(start, start + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);

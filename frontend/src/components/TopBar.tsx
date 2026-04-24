@@ -19,6 +19,7 @@ const TopBar = ({
   width = "narrow",
 }: TopBarProps) => {
   const navigate = useNavigate();
+  // Keeps header width aligned with the chosen page layout preset.
   const widthClass =
     width === "wide"
       ? "max-w-[1200px]"

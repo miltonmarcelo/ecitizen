@@ -35,6 +35,7 @@ const ReportSuccessPage = () => {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
 
+  // Case ID is passed from the submit page through router state.
   const caseId = location.state?.caseId;
 
   const [issue, setIssue] = useState<IssueDetails | null>(null);
@@ -56,6 +57,7 @@ const ReportSuccessPage = () => {
           throw new Error("You must be logged in to view this page.");
         }
 
+        // Sends Firebase token so backend can verify access to this case.
         const token = await user.getIdToken();
 
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/issues/${caseId}`, {
@@ -72,6 +74,7 @@ const ReportSuccessPage = () => {
           throw new Error(data.message || "Failed to load issue details.");
         }
 
+        // Accepts both wrapped and direct issue shapes from the API response.
         const returnedIssue = data?.issue || data;
 
         if (!returnedIssue?.caseId) {

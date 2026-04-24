@@ -27,6 +27,7 @@ const RegisterPage = () => {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    // Normalizes spacing so the saved full name is consistent.
     const normalizedFullName = fullName.trim().replace(/\s+/g, " ");
 
     if (!normalizedFullName) {
@@ -57,6 +58,7 @@ const RegisterPage = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       createdUser = userCredential.user;
 
+      // Uses Firebase token so backend can create or sync the app-level user record.
       const token = await createdUser.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/sync`, {
@@ -74,6 +76,7 @@ const RegisterPage = () => {
       let data: any = {};
 
       try {
+        // Parses defensively in case backend returns plain text on some errors.
         data = rawText ? JSON.parse(rawText) : {};
       } catch {
         data = {};
@@ -92,6 +95,7 @@ const RegisterPage = () => {
 
       if (createdUser && !firebaseErrorCode) {
         try {
+          // Rolls back Firebase auth user when backend sync fails after account creation.
           await deleteUser(createdUser);
         } catch (deleteError) {
           console.error("Failed to delete Firebase user after sync error:", deleteError);

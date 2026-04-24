@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get("/", auth, async (req, res) => {
   try {
+    // Returns only active categories so citizens cannot pick disabled ones.
     const categories = await prisma.category.findMany({
       where: {
         isActive: true,

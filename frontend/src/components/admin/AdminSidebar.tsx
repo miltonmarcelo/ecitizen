@@ -44,6 +44,7 @@ export default function AdminSidebar() {
 
   const handleSignOut = async () => {
     try {
+      // Calls shared auth logout so route guards see the signed-out state.
       await logout();
       navigate("/");
     } catch (error) {

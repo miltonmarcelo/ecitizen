@@ -93,6 +93,7 @@ const StaffIssueTable = ({
   const [pageSize, setPageSize] = useState(10);
   const [columnWidths, setColumnWidths] = useState<ColumnWidths>(defaultWidths);
 
+  // Tracks active column resize drag without forcing re-render on each mouse move.
   const resizeStateRef = useRef<{
     column: ColumnKey;
     startX: number;
@@ -106,6 +107,7 @@ const StaffIssueTable = ({
       if (!resizeStateRef.current) return;
 
       const { column, startX, startWidth } = resizeStateRef.current;
+      // Enforces a minimum width so columns stay readable while resizing.
       const nextWidth = Math.max(80, startWidth + (event.clientX - startX));
 
       setColumnWidths((prev) => ({
@@ -155,6 +157,7 @@ const StaffIssueTable = ({
     }
 
     setSortKey(key);
+    // Date and age columns default to descending so newest/most urgent rows show first.
     setSortDir(key === "createdAt" || key === "updatedAt" || key === "daysOpen" ? "desc" : "asc");
   };
 
@@ -162,6 +165,7 @@ const StaffIssueTable = ({
     const list = [...issues];
     const dir = sortDir === "asc" ? 1 : -1;
 
+    // Uses numeric compare for date/age fields and text compare for everything else.
     list.sort((a, b) => {
       let valueA: string | number;
       let valueB: string | number;
@@ -194,6 +198,7 @@ const StaffIssueTable = ({
   }, [issues, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sortedIssues.length / pageSize));
+  // Keeps current page valid after filtering, sorting, or page-size changes.
   const safePage = Math.min(page, totalPages);
 
   useEffect(() => {

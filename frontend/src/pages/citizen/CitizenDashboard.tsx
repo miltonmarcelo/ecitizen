@@ -51,6 +51,7 @@ type ApiIssue = {
 };
 
 const DEFAULT_CATEGORY_NAMES = ["Potholes", "Illegal Dumping", "Hazards"];
+// Closed statuses are excluded from "In Progress" totals.
 const CLOSED_STATUSES: IssueStatus[] = ["RESOLVED", "CLOSED", "CANCELLED"];
 const RESOLVED_STATUSES: IssueStatus[] = ["RESOLVED", "CLOSED"];
 
@@ -116,6 +117,7 @@ const QUICK_ACTION_META = {
   }
 >;
 
+// Falls back to a generic action when a category does not have custom quick-action metadata.
 const getQuickActionMeta = (categoryName: string) =>
   QUICK_ACTION_META[normalizeName(categoryName)] || {
     label: `Report ${categoryName}`,
@@ -144,10 +146,12 @@ const DashboardPage = () => {
           return;
         }
 
+        // Uses one Firebase token for both dashboard endpoints.
         const token = await user.getIdToken();
         const baseUrl = import.meta.env.VITE_API_BASE_URL;
         const headers = { Authorization: `Bearer ${token}` };
 
+        // Loads issues and categories in parallel to keep dashboard startup fast.
         const [issuesResponse, categoriesResponse] = await Promise.all([
           fetch(`${baseUrl}/api/issues/my`, { method: "GET", headers }),
           fetch(`${baseUrl}/api/categories`, { method: "GET", headers }),
@@ -225,6 +229,7 @@ const DashboardPage = () => {
   );
 
   const topQuickActionCategories = useMemo(() => {
+    // Counts categories from past reports so top actions match what this user reports most.
     const usedCounts = new Map<number, { category: ApiCategory; count: number }>();
 
     for (const issue of issues) {
@@ -242,6 +247,7 @@ const DashboardPage = () => {
       .sort((a, b) => b.count - a.count)
       .map(({ category }) => category);
 
+    // Adds fallback categories when user history is too small.
     const fallbackCategories = DEFAULT_CATEGORY_NAMES.map((defaultName) =>
       categories.find(
         (category) => normalizeName(category.name) === normalizeName(defaultName)

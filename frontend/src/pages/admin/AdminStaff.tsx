@@ -136,6 +136,7 @@ export default function AdminStaff() {
   }, [authLoading, loadStaff]);
 
   const rows = useMemo<StaffRow[]>(
+    // Flattens nested staff + user data for table filters and sorting.
     () =>
       staff.map((item) => ({
         id: item.id,
@@ -159,6 +160,7 @@ export default function AdminStaff() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
+    // Combines search, role, status, and sort in one derived dataset.
     return [...rows]
       .filter((item) => {
         const matchesSearch =
@@ -204,6 +206,7 @@ export default function AdminStaff() {
     try {
       setSavingStaff((current) => ({ ...current, [staffId]: true }));
 
+      // Updates staff-profile fields stored in the staff table.
       const data = await adminFetch<{ staff: AdminStaff; message: string }>(
         user,
         `/api/admin/staff/${staffId}`,
@@ -233,6 +236,7 @@ export default function AdminStaff() {
     try {
       setSavingUsers((current) => ({ ...current, [userId]: true }));
 
+      // Updates role/active/name fields stored in the linked user table.
       const data = await adminFetch<{ user: Partial<AdminStaff["user"]>; message: string }>(
         user,
         `/api/admin/users/${userId}`,
@@ -269,6 +273,7 @@ export default function AdminStaff() {
   const handleEditSave = async () => {
     if (!editStaff) return;
 
+    // Saves user name and staff job title together to keep profile fields in sync.
     const [userUpdated, staffUpdated] = await Promise.all([
       updateStaffUser(editStaff.userId, { fullName: editName.trim() }),
       updateStaffProfile(editStaff.id, editJobTitle.trim()),

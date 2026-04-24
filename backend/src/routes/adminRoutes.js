@@ -10,6 +10,7 @@ function isAdmin(user) {
 }
 
 function parseBoolean(value) {
+  // Parses boolean flags from either JSON booleans or query/body strings.
   if (typeof value === "boolean") return value;
   if (value === "true") return true;
   if (value === "false") return false;
@@ -23,6 +24,7 @@ function getDefaultJobTitle(role) {
 async function unassignIssuesForStaff(tx, staffId, changedByUserId, reason) {
   if (!staffId) return;
 
+  // Gets issue ids first so history rows can be written after bulk unassign.
   const assignedIssues = await tx.issue.findMany({
     where: { staffId },
     select: { id: true },
@@ -35,6 +37,7 @@ async function unassignIssuesForStaff(tx, staffId, changedByUserId, reason) {
     data: { staffId: null },
   });
 
+  // Logs one UNASSIGNED history entry per affected issue.
   await tx.issueHistory.createMany({
     data: assignedIssues.map((issue) => ({
       issueId: issue.id,
@@ -47,6 +50,7 @@ async function unassignIssuesForStaff(tx, staffId, changedByUserId, reason) {
 
 router.use(auth);
 router.use((req, res, next) => {
+  // Applies one admin guard to every route below.
   if (!isAdmin(req.user)) {
     return res.status(403).json({ message: "Only admins can access this area" });
   }
@@ -56,6 +60,7 @@ router.use((req, res, next) => {
 
 router.get("/overview", async (req, res) => {
   try {
+    // Loads dashboard counters in parallel to reduce admin page load time.
     const [users, staff, categories, issues, notes, history] = await Promise.all([
       prisma.user.count(),
       prisma.staff.count(),
@@ -146,6 +151,7 @@ router.patch("/users/:userId", async (req, res) => {
     const resolvedRole = nextRole || existingUser.role;
     const resolvedIsActive = nextIsActive ?? existingUser.isActive;
 
+    // Stops admins from locking themselves out.
     if (existingUser.id === req.user.id) {
       if (resolvedRole !== ROLES.ADMIN) {
         return res.status(400).json({ message: "You cannot remove your own admin role" });
@@ -160,6 +166,7 @@ router.patch("/users/:userId", async (req, res) => {
       existingUser.staffProfile && existingUser.role !== ROLES.CITIZEN && resolvedRole === ROLES.CITIZEN;
     const becomingInactive = existingUser.staffProfile && existingUser.isActive && !resolvedIsActive;
 
+    // Keeps user role/status update and related staff side effects in one transaction.
     const updatedUser = await prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
         where: { id: userId },
@@ -174,6 +181,7 @@ router.patch("/users/:userId", async (req, res) => {
       });
 
       if ((resolvedRole === ROLES.STAFF || resolvedRole === ROLES.ADMIN) && !existingUser.staffProfile) {
+        // Creates staff profile automatically when user becomes staff/admin.
         await tx.staff.create({
           data: {
             userId: user.id,
@@ -183,6 +191,7 @@ router.patch("/users/:userId", async (req, res) => {
       }
 
       if (roleChangingToNonStaff) {
+        // Unassigns staff cases when role changes back to citizen.
         await unassignIssuesForStaff(
           tx,
           existingUser.staffProfile.id,
@@ -192,6 +201,7 @@ router.patch("/users/:userId", async (req, res) => {
       }
 
       if (becomingInactive) {
+        // Unassigns active staff cases when account is disabled.
         await unassignIssuesForStaff(
           tx,
           existingUser.staffProfile.id,
@@ -400,6 +410,7 @@ router.patch("/categories/:categoryId", async (req, res) => {
     }
 
     if (name && name !== existingCategory.name) {
+      // Checks for duplicates only when name is actually changing.
       const duplicateCategory = await prisma.category.findFirst({
         where: {
           name,
@@ -465,6 +476,7 @@ router.delete("/categories/:categoryId", async (req, res) => {
     }
 
     if (existingCategory._count.issues > 0) {
+      // Blocks hard delete when issues still reference this category.
       return res.status(409).json({
         message: "This category is already linked to issues. Disable it instead of deleting it.",
       });
@@ -488,6 +500,7 @@ router.delete("/categories/:categoryId", async (req, res) => {
 
 router.get("/issues", async (req, res) => {
   try {
+    // Returns denormalized issue data so admin tables can render without extra requests.
     const issues = await prisma.issue.findMany({
       include: {
         category: true,
@@ -537,6 +550,7 @@ router.get("/issues", async (req, res) => {
 
 router.get("/notes", async (req, res) => {
   try {
+    // Includes linked issue and staff user so admin notes table is self-contained.
     const notes = await prisma.note.findMany({
       include: {
         issue: {
@@ -577,6 +591,7 @@ router.get("/notes", async (req, res) => {
 
 router.get("/history", async (req, res) => {
   try {
+    // Includes actor and issue snapshot fields for full audit trail rows.
     const history = await prisma.issueHistory.findMany({
       include: {
         issue: {

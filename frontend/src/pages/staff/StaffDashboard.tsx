@@ -29,6 +29,7 @@ import {
 const RESOLVED_STATUSES = new Set(["RESOLVED", "CLOSED"]);
 
 function getAssignedStaffName(staff: any) {
+  // Falls back through available name fields when staff profile data is partial.
   return (
     staff?.user?.fullName ||
     [staff?.user?.firstName, staff?.user?.lastName].filter(Boolean).join(" ").trim() ||
@@ -47,6 +48,7 @@ const StaffDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const currentStaffId = appUser?.staffProfile?.id ?? null;
   const defaultAssignedFilter = useMemo(() => {
+    // Defaults to "my issues" only when current staff actually has assigned records.
     if (appUser?.role !== "STAFF" || currentStaffId === null) {
       return "all";
     }
@@ -60,6 +62,7 @@ const StaffDashboard = () => {
   const [assignedFilter, setAssignedFilter] = useState("all");
 
   useEffect(() => {
+    // Re-syncs assignment filter when auth/profile data or issue list changes.
     setAssignedFilter(defaultAssignedFilter);
   }, [defaultAssignedFilter]);
 
@@ -76,6 +79,7 @@ const StaffDashboard = () => {
           return;
         }
 
+        // Uses Firebase token so staff-only issues endpoint can verify role access.
         const token = await user.getIdToken();
         const response = await fetch(`${API_BASE_URL}/api/issues`, {
           method: "GET",
@@ -111,6 +115,7 @@ const StaffDashboard = () => {
   );
 
   const assignedStaffOptions = useMemo(() => {
+    // Builds one option per staff ID from currently loaded issues.
     const map = new Map<number, string>();
 
     for (const issue of issues) {
@@ -130,6 +135,7 @@ const StaffDashboard = () => {
   const filteredIssues = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
+    // Applies all dashboard filters in one pass before mapping to table rows.
     return issues.filter((issue) => {
       const categoryName = issue.category?.name || "Uncategorised";
       const assignedStaffId = issue.staff?.id ?? null;
@@ -158,6 +164,7 @@ const StaffDashboard = () => {
   );
 
   const stats = useMemo(() => {
+    // Computes summary cards from the full issue list, not from filtered rows.
     let assignedToMe = 0;
     let unassigned = 0;
     let resolvedByMe = 0;

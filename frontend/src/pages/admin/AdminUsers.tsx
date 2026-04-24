@@ -120,6 +120,7 @@ export default function AdminUsers() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
+    // Runs search + role/status filters before shared sort logic.
     return [...users]
       .filter((item) => {
         const matchesSearch =
@@ -167,6 +168,7 @@ export default function AdminUsers() {
     try {
       setSaving((current) => ({ ...current, [userId]: true }));
 
+      // Sends partial user updates so role/status/name can be changed independently.
       const data = await adminFetch<{ user: AdminUser; message: string }>(
         user,
         `/api/admin/users/${userId}`,
@@ -197,6 +199,7 @@ export default function AdminUsers() {
 
   const handleConfirmAction = async () => {
     if (!confirmAction) return;
+    // Uses the same update path for enable/disable by toggling isActive.
     await updateUser(confirmAction.user.id, {
       isActive: confirmAction.action === "enable",
     });

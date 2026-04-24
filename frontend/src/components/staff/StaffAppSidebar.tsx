@@ -36,6 +36,7 @@ export function StaffAppSidebar() {
 
   const handleSignOut = async () => {
     try {
+      // Calls shared auth logout so protected staff routes redirect correctly.
       await logout();
       navigate("/");
     } catch (error) {
@@ -81,6 +82,7 @@ export function StaffAppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {/* Shows admin link only for users with ADMIN role in the staff sidebar. */}
               {appUser?.role === "ADMIN" && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip={collapsed ? "Admin Panel" : undefined}>

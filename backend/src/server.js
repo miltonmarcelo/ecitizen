@@ -11,6 +11,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Limits browser access to known frontend origins.
 const allowedOrigins = [
   "http://localhost:8080",
   "https://ecitizen.onrender.com",
@@ -18,6 +19,7 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin(origin, callback) {
+    // Allows non-browser requests that do not send an Origin header.
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS blocked for origin: ${origin}`));
@@ -38,6 +40,7 @@ app.get("/", (req, res) => {
 
 app.get("/health/db", async (req, res) => {
   try {
+    // Runs a lightweight query to confirm Prisma can reach the database.
     await prisma.$queryRaw`SELECT 1`;
     res.json({ database: "connected" });
   } catch (error) {

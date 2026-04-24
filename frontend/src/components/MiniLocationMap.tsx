@@ -16,6 +16,7 @@ const MiniLocationMap = ({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
+  // Prevents marker drag callback from firing when marker is moved by props update.
   const suppressNextDragRef = useRef(false);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ const MiniLocationMap = ({
       }
 
       const lngLat = marker.getLngLat();
+      // Returns updated coordinates to parent form after user drags the pin.
       onLocationChange(lngLat.lat, lngLat.lng);
     });
 
@@ -67,6 +69,7 @@ const MiniLocationMap = ({
 
     if (sameLat && sameLng) return;
 
+    // Moves marker from external state changes and skips one drag callback loop.
     suppressNextDragRef.current = true;
     markerRef.current.setLngLat([longitude, latitude]);
     mapRef.current.easeTo({

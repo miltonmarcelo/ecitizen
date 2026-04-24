@@ -19,6 +19,7 @@ function isStaffOrAdmin(user) {
 
 router.post("/sync", auth, async (req, res) => {
   try {
+    // Normalizes spacing so full names stay consistent in the database.
     const submittedFullName =
       typeof req.body?.fullName === "string"
         ? req.body.fullName.trim().replace(/\s+/g, " ")
@@ -36,6 +37,7 @@ router.post("/sync", auth, async (req, res) => {
 
     let existingUser = await prisma.user.findFirst({
       where: {
+        // Matches either UID or email to handle first login after provider/account changes.
         OR: [{ firebaseUid }, { email }],
       },
       include: {
@@ -49,6 +51,7 @@ router.post("/sync", auth, async (req, res) => {
       const updateData = {};
 
       if (existingUser.firebaseUid !== firebaseUid) {
+        // Updates stale UID when the same email account links to a new Firebase UID.
         updateData.firebaseUid = firebaseUid;
       }
 
@@ -57,6 +60,7 @@ router.post("/sync", auth, async (req, res) => {
       }
 
       user =
+        // Skips update query when nothing actually changed.
         Object.keys(updateData).length > 0
           ? await prisma.user.update({
               where: { id: existingUser.id },
@@ -67,6 +71,7 @@ router.post("/sync", auth, async (req, res) => {
             })
           : existingUser;
     } else {
+      // Creates new app user on first login with default citizen role.
       user = await prisma.user.create({
         data: {
           firebaseUid,
@@ -96,6 +101,7 @@ router.post("/sync", auth, async (req, res) => {
 router.get("/me", auth, async (req, res) => {
   try {
     if (!req.user) {
+      // Auth token was valid but no matching app user was found.
       return res.status(404).json({
         message: "User profile not found",
       });
@@ -176,6 +182,7 @@ router.get("/staff-members", auth, async (req, res) => {
       return res.status(403).json({ message: "Only staff can view staff members" });
     }
 
+    // Returns active staff/admin assignees sorted by name for assignment dropdowns.
     const staffMembers = await prisma.staff.findMany({
       where: {
         user: {
@@ -216,6 +223,7 @@ router.get("/staff-members", auth, async (req, res) => {
 
 router.post("/change-password", auth, async (req, res) => {
   try {
+    // Uses UID from verified token instead of trusting a client-sent user id.
     const firebaseUid = req.firebaseUser?.uid;
     const { newPassword } = req.body;
 
@@ -237,6 +245,7 @@ router.post("/change-password", auth, async (req, res) => {
       });
     }
 
+    // Updates password directly in Firebase Auth.
     await admin.auth().updateUser(firebaseUid, {
       password: newPassword,
     });

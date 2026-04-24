@@ -54,6 +54,7 @@ const ChangePasswordPage = () => {
         return;
       }
 
+      // Re-checks current password so Firebase accepts the sensitive password change.
       const credential = EmailAuthProvider.credential(
         user.email,
         currentPassword
@@ -61,6 +62,7 @@ const ChangePasswordPage = () => {
 
       await reauthenticateWithCredential(user, credential);
 
+      // Sends a fresh token so backend can verify identity before updating password.
       const idToken = await user.getIdToken(true);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/change-password`, {

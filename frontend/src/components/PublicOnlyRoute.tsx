@@ -24,6 +24,7 @@ const PublicOnlyRoute = ({ children }: PublicOnlyRouteProps) => {
     return <Navigate to="/staff/dashboard" replace />;
   }
 
+  // Logged-in citizens should not stay on auth/public-only pages.
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }

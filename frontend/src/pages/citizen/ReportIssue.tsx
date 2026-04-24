@@ -21,6 +21,7 @@ import StatusBadge from "@/components/common/StatusBadge";
 import { dublinAreas, localAreasByDublinArea } from "@/data/dublinLocations";
 import { uploadIssuePhoto } from "@/lib/issuePhoto";
 
+// Matches category objects from the API where some fields can be missing.
 type Category = {
   id: number;
   name: string;
@@ -28,6 +29,7 @@ type Category = {
   isActive?: boolean;
 };
 
+// Tracks which step of the location flow is currently active.
 type LocationMode =
   | "idle"
   | "gps-select"
@@ -44,12 +46,14 @@ type AddressState = {
   county: string;
 };
 
+// Stores the geocoded manual address before the user accepts it.
 type ManualAddressCandidate = {
   latitude: number;
   longitude: number;
   formatted: string;
 };
 
+// Resets manual address fields back to Dublin defaults.
 const DEFAULT_ADDRESS: AddressState = {
   addressLine1: "",
   addressLine2: "",
@@ -59,6 +63,7 @@ const DEFAULT_ADDRESS: AddressState = {
   county: "Dublin",
 };
 
+// Maps postcode prefixes from geocoding results to the Dublin Area dropdown.
 const POSTCODE_TO_DUBLIN_AREA: Record<string, string> = {
   D01: "Dublin 1",
   D02: "Dublin 2",
@@ -84,36 +89,14 @@ const POSTCODE_TO_DUBLIN_AREA: Record<string, string> = {
   D24: "Dublin 24",
 };
 
-const DUPLICATES = [
-  {
-    id: 1,
-    title: "Pothole on Main Road",
-    area: "City Centre",
-    status: "UNDER_REVIEW",
-    supports: 23,
-  },
-  {
-    id: 2,
-    title: "Broken Street Light",
-    area: "West District",
-    status: "IN_PROGRESS",
-    supports: 14,
-  },
-  {
-    id: 3,
-    title: "Blocked Drainage",
-    area: "South Area",
-    status: "CREATED",
-    supports: 8,
-  },
-];
-
+// Keeps location status text in one place for GPS and manual flows.
 const LOCATION_MESSAGES = {
   gpsReady: "Adjust the pin if needed, then tap Confirm.",
   pinUpdated: "Location updated. Confirm when ready.",
   confirmed: "Location confirmed.",
 };
 
+// Shared animation preset for staggered section entry.
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   visible: (i: number) => ({
@@ -126,6 +109,7 @@ const fadeUp = {
 const mapPostcodeToDublinArea = (postcode: string) => {
   const normalized = postcode.trim().toUpperCase();
   if (!normalized) return "";
+  // Dublin 6W uses four chars, while other Dublin postcodes map from the first three.
   const routingKey = normalized.startsWith("D6W") ? "D6W" : normalized.slice(0, 3);
   return POSTCODE_TO_DUBLIN_AREA[routingKey] || "";
 };
@@ -135,6 +119,7 @@ const ReportIssuePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Reads optional ?categoryId=... so a previous screen can preselect a category.
   const requestedCategoryId = useMemo(() => {
     const raw = searchParams.get("categoryId");
     const parsed = Number(raw);
@@ -167,6 +152,7 @@ const ReportIssuePage = () => {
     useState<ManualAddressCandidate | null>(null);
 
   const localAreaOptions = area ? localAreasByDublinArea[area] || [] : [];
+  // These flags control which location panel the UI shows.
   const isLocationConfirmed =
     locationMode === "gps-confirmed" || locationMode === "manual-confirmed";
   const isGpsMode = locationMode === "idle" || locationMode === "gps-select";
@@ -181,6 +167,7 @@ const ReportIssuePage = () => {
     setAddress((prev) => ({ ...prev, ...updates }));
 
   const resetLocationState = () => {
+    // Clears old GPS/manual location data before starting another location path.
     setLatitude(null);
     setLongitude(null);
     setLocationMessage("");
@@ -191,6 +178,7 @@ const ReportIssuePage = () => {
   const getGeoapifyApiKey = () => {
     const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
     if (!apiKey) {
+      // Fail early so we do not call Geoapify with a missing key.
       throw new Error("Geoapify API key is missing. Please add VITE_GEOAPIFY_API_KEY to your .env file.");
     }
     return apiKey;
@@ -215,6 +203,7 @@ const ReportIssuePage = () => {
 
     const houseNumber = result.housenumber ? `${result.housenumber} ` : "";
     const street = result.street || "";
+    // Try the provider's best address first, then build a fallback from available pieces.
     const resolvedAddress1 =
       result.address_line1 ||
       `${houseNumber}${street}`.trim() ||
@@ -233,6 +222,7 @@ const ReportIssuePage = () => {
 
   const forwardGeocodeFromGeoapify = async () => {
     const apiKey = getGeoapifyApiKey();
+    // Build one search string from whatever manual fields the user filled in.
     const searchText = [addressLine1, addressLine2, suburb, area, city, county]
       .filter(Boolean)
       .join(", ");
@@ -274,6 +264,7 @@ const ReportIssuePage = () => {
         ]
           .filter(Boolean)
           .join(", "),
+      // Keeps the typed suburb/area when available to match the selected dropdown values.
       suburb: suburb || result.suburb || result.neighbourhood || result.district || result.city || "",
       area: area || mapPostcodeToDublinArea(result.postcode || ""),
       city: "Dublin",
@@ -290,6 +281,7 @@ const ReportIssuePage = () => {
 
       let bestPosition: GeolocationPosition | null = null;
 
+      // Watch for a few seconds and keep the most accurate reading we get.
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
@@ -308,6 +300,7 @@ const ReportIssuePage = () => {
       );
 
       setTimeout(() => {
+        // Stop watching after a short window and use the best reading collected so far.
         navigator.geolocation.clearWatch(watchId);
         bestPosition
           ? resolve(bestPosition)
@@ -316,6 +309,7 @@ const ReportIssuePage = () => {
     });
 
   useEffect(() => {
+    // Wait for auth to settle before deciding whether categories can be fetched.
     if (authLoading) return;
 
     const fetchCategories = async () => {
@@ -328,6 +322,7 @@ const ReportIssuePage = () => {
           return;
         }
 
+        // Attach the Firebase ID token so the API can verify who is requesting categories.
         const token = await user.getIdToken();
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/categories`, {
           method: "GET",
@@ -354,6 +349,7 @@ const ReportIssuePage = () => {
 
   useEffect(() => {
     if (!requestedCategoryId || categories.length === 0) return;
+    // Auto-selects the category when a valid ID came from the query string.
     const matchedCategory = categories.find((category) => category.id === requestedCategoryId);
     if (matchedCategory) setSelectedCategory(matchedCategory);
   }, [requestedCategoryId, categories]);
@@ -361,6 +357,7 @@ const ReportIssuePage = () => {
   useEffect(() => {
     return () => {
       if (photoPreviewUrl) {
+        // Clean up old object URLs to avoid leaking memory when previews change.
         URL.revokeObjectURL(photoPreviewUrl);
       }
     };
@@ -379,6 +376,7 @@ const ReportIssuePage = () => {
       setLocationMode("gps-select");
       setLocationMessage(LOCATION_MESSAGES.gpsReady);
     } catch (err: any) {
+      // Maps browser geolocation error codes to clearer messages for the user.
       if (err?.code === 1) {
         setError("Location access was denied. You can add the address manually.");
       } else if (err?.code === 2) {
@@ -403,6 +401,7 @@ const ReportIssuePage = () => {
       setError("");
       setLocationLoading(true);
 
+      // Convert the selected pin coordinates into a structured Dublin address.
       const resolved = await reverseGeocodeFromGeoapify(latitude, longitude);
 
       updateAddress({
@@ -426,12 +425,14 @@ const ReportIssuePage = () => {
   const handleShowManualAddress = () => {
     setError("");
     setLocationMessage("");
+    // Drops any GPS state so manual entry starts clean.
     resetLocationState();
     setLocationMode("manual-entry");
   };
 
   const handleDublinAreaChange = (value: string) => {
     setManualAddressCandidate(null);
+    // Clears local area because options change when Dublin Area changes.
     updateAddress({
       area: value,
       suburb: "",
@@ -462,6 +463,7 @@ const ReportIssuePage = () => {
       setLocationMessage("");
       setManualAddressCandidate(null);
 
+      // Geocode manual fields first so the user can confirm the matched address.
       const resolved = await forwardGeocodeFromGeoapify();
 
       setManualAddressCandidate({
@@ -481,6 +483,7 @@ const ReportIssuePage = () => {
     if (!manualAddressCandidate) return;
 
     setError("");
+    // Lock in the confirmed coordinates from the manual address match.
     setLatitude(manualAddressCandidate.latitude);
     setLongitude(manualAddressCandidate.longitude);
 
@@ -536,6 +539,7 @@ const ReportIssuePage = () => {
     }
 
     if (photoPreviewUrl) {
+      // Replace the previous preview URL before generating a new one.
       URL.revokeObjectURL(photoPreviewUrl);
     }
 
@@ -553,6 +557,7 @@ const ReportIssuePage = () => {
     setPhotoPreviewUrl("");
 
     if (fileInputRef.current) {
+      // Resets the file input so selecting the same image again still triggers change.
       fileInputRef.current.value = "";
     }
   };
@@ -602,6 +607,7 @@ const ReportIssuePage = () => {
         throw new Error("You must be logged in to submit an issue.");
       }
 
+      // Send Firebase auth so the backend can verify and link the report to this user.
       const token = await user.getIdToken();
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/issues`, {
         method: "POST",
@@ -632,12 +638,15 @@ const ReportIssuePage = () => {
 
       if (photoFile && user?.uid) {
         try {
+          // Upload the photo after issue creation so it can be tied to the new case ID.
           await uploadIssuePhoto(photoFile, user.uid, data.issue.caseId);
         } catch (uploadError) {
+          // Keeps issue submission successful even if photo upload fails.
           console.error("Photo upload failed:", uploadError);
         }
       }
 
+      // Passes the new case ID so the success screen can show it.
       navigate("/report-success", {
         state: { caseId: data.issue.caseId },
       });

@@ -32,6 +32,7 @@ const UserProfileDropdown = () => {
   const firstName = fullName ? fullName.split(" ")[0] : "";
   const email = appUser?.email || user?.email || "No email available";
   const role = String(appUser?.role || "").toLowerCase();
+  // Shows dashboard shortcut only when citizen is outside dashboard route.
   const showDashboardLink = role === "citizen" && location.pathname !== "/dashboard";
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -40,6 +41,7 @@ const UserProfileDropdown = () => {
   const [nameError, setNameError] = useState("");
 
   useEffect(() => {
+    // Keeps edit input in sync when profile name changes elsewhere in the app.
     setDraftName(appUser?.fullName || "");
   }, [appUser?.fullName]);
 
@@ -75,6 +77,7 @@ const UserProfileDropdown = () => {
   const handleSaveName = async () => {
     if (!user) return;
 
+    // Normalizes spacing before saving the full name.
     const cleanedName = draftName.trim().replace(/\s+/g, " ");
 
     if (!cleanedName) {
@@ -86,6 +89,7 @@ const UserProfileDropdown = () => {
       setSavingName(true);
       setNameError("");
 
+      // Sends Firebase token so backend can verify and update current user profile.
       const token = await user.getIdToken();
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/me`, {
@@ -105,6 +109,7 @@ const UserProfileDropdown = () => {
         throw new Error(data.message || "Failed to update name");
       }
 
+      // Reloads app user context so header/dropdowns show the updated name immediately.
       await refreshAppUser();
       setIsEditingName(false);
     } catch (error: any) {

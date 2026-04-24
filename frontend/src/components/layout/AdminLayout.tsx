@@ -26,6 +26,7 @@ export default function AdminLayout({
         <AdminSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* Reuses the staff header component for shared search/profile behavior in admin pages. */}
           <StaffDashboardHeader
             pageTitle={pageTitle}
             searchValue={searchValue}
